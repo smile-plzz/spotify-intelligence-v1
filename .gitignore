@@ -1,0 +1,78 @@
+# ── Scratch-repo .gitignore ──────────────────────────────────────────
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Windows registry / system (HUGE, never commit)
+NTUSER.DAT
+ntuser.dat.*
+*.regtrans-ms
+*.TM.blf
+*.TMContainer*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Hermes internals
+.hermes/
+.cua-driver/
+.cua-driver-rs/
+.config/
+.local/
+
+# Loose folders — runtime / personal, not agent scratch
+conversations/
+Desktop/
+Downloads/
+OneDrive/
+Projects/
+Searches/
+Favorites/
+Links/
+IntelGraphicsProfiles/
+Videos/
+Music/
+Contacts/
+Saved\ Games/
+Templates/
+Start\ Menu/
+
+# Docker
+.docker/
+
+# Large / binary / generated
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.mp3
+*.mp4
+*.exe
+*.dll
+*.ico
+*.pdf
+
+# IDE / editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
