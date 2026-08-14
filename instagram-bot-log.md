@@ -26,8 +26,13 @@ I paid. The rain stopped three minutes later.
 
 Dhaka. 14 August 2026.
 
+### Post Status
+- [PENDING] Upload Day 1 image via "Select from computer" button
+- File picker dialog appeared, file path set to day1_cng.png
+- Upload in progress / awaiting confirmation
+
 ### Pending
-- POST DAY 1 IMAGE (not yet posted at log time)
+- Confirm Day 1 post published
 - Schedule Day 2-7 images
 - Set up engagement pattern
 
