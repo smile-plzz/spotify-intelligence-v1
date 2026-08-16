@@ -28,6 +28,12 @@ venv/
 *.db-wal
 *.log
 
+# Secrets / credentials — never commit
+.env
+.env.*
+.claude.json
+.cache/
+
 # Hermes internals
 .hermes/
 .cua-driver/
@@ -36,6 +42,19 @@ venv/
 .local/
 
 # Loose folders — runtime / personal, not agent scratch
+# (AppData also contains a broken self-referential junction at
+#  AppData/Local/Application Data that hangs recursive tree walks —
+#  see change log 2026-08-16)
+AppData/
+# Legacy Windows compat junctions (all point back into the same
+# self-referential AppData tree — see note above)
+Application Data/
+Local Settings/
+My Documents/
+Recent/
+SendTo/
+NetHood/
+PrintHood/
 conversations/
 Desktop/
 Downloads/

@@ -61,6 +61,8 @@ KNOWN_LIMITS = {
 
 def get_context_limit(model: str) -> int:
     """Return context window size for a model, 0 if unknown."""
+    if not model or not isinstance(model, str):
+        return 0
     if model in CONTEXT_LIMITS:
         return CONTEXT_LIMITS[model]
     if model in KNOWN_LIMITS:
@@ -183,23 +185,24 @@ def api_session_model_usage():
 
 
 def api_sessions_summary():
-    """One row per session with totals."""
+    """One row per session with totals — aggregates session_model_usage then joins."""
     rows = db_query("""
-        SELECT 
+        SELECT
             s.id,
             s.session_key,
             s.display_name,
-            s.model,
+            COALESCE(sm.model, (SELECT model FROM session_model_usage WHERE session_id = s.id LIMIT 1)) as model,
             s.model_config,
-            s.started_at,
-            s.ended_at,
-            s.message_count,
-            s.tool_call_count,
             s.input_tokens,
             s.output_tokens,
             s.cache_read_tokens,
             s.cache_write_tokens,
             s.reasoning_tokens,
+            s.api_call_count,
+            s.started_at,
+            s.ended_at,
+            s.message_count,
+            s.tool_call_count,
             s.billing_provider,
             s.billing_mode,
             s.estimated_cost_usd,
@@ -209,6 +212,14 @@ def api_sessions_summary():
             s.title,
             s.last_activity_description
         FROM sessions s
+        LEFT JOIN (
+            SELECT session_id, model, input_tokens, output_tokens,
+                   cache_read_tokens, reasoning_tokens, api_call_count,
+                   SUM(estimated_cost_usd) as estimated_cost_usd,
+                   SUM(actual_cost_usd) as actual_cost_usd
+            FROM session_model_usage
+            GROUP BY session_id
+        ) sm ON s.id = sm.session_id
         ORDER BY s.started_at ASC
     """)
     
@@ -1455,69 +1466,88 @@ setInterval(refreshAll, 30000);
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     """HTTP handler with API endpoints + embedded HTML."""
-    
+
     def do_GET(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-        
-        if path == '/' or path == '/index.html':
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self.send_header('Cache-Control', 'no-cache')
-            self.end_headers()
-            html = HTML_TEMPLATE
-            context_json = json.dumps(CONTEXT_LIMITS)
-            context_count = sum(1 for v in CONTEXT_LIMITS.values() if v > 0)
-            html = html.replace('{{ CONTEXT_LIMITS_JSON }}', context_json)
-            html = html.replace('{{ CONTEXT_COUNT }}', str(context_count))
-            self.wfile.write(html.encode('utf-8'))
-        
-        elif path == '/api/summary':
-            data = api_dashboard_summary()
-            self.send_json(data)
-        
-        elif path == '/api/sessions':
-            data = api_sessions_summary()
-            self.send_json(data)
-        
-        elif path == '/api/models':
-            data = api_model_aggregation()
-            self.send_json(data)
-        
-        elif path == '/api/channels':
-            data = api_channel_breakdown()
-            self.send_json(data)
-        
-        elif path == '/api/timeline':
-            data = api_token_timeline()
-            self.send_json(data)
-        
-        elif path == '/api/active':
-            data = api_active_sessions()
-            self.send_json(data)
-        
-        elif path == '/api/alerts':
-            data = api_alerts()
-            self.send_json(data)
-        
-        elif path == '/api/full':
-            data = {
-                'summary': api_dashboard_summary(),
-                'sessions': api_sessions_summary(),
-                'models': api_model_aggregation(),
-                'channels': api_channel_breakdown(),
-                'timeline': api_token_timeline(),
-                'active': api_active_sessions(),
-                'alerts': api_alerts(),
-            }
-            self.send_json(data)
-        
-        elif path == '/health':
-            self.send_json({'status': 'ok', 'db': DB_PATH, 'port': DASHBOARD_PORT})
-        
-        else:
-            self.send_error(404, 'Not found')
-    
+        print(f"REQUEST: {self.path}", flush=True)
+        try:
+            parsed = urlparse(self.path)
+            path = parsed.path
+
+            if path == '/' or path == '/index.html':
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache')
+                self.end_headers()
+                html = HTML_TEMPLATE
+                context_json = json.dumps(CONTEXT_LIMITS)
+                context_count = sum(1 for v in CONTEXT_LIMITS.values() if v > 0)
+                html = html.replace('{{ CONTEXT_LIMITS_JSON }}', context_json)
+                html = html.replace('{{ CONTEXT_COUNT }}', str(context_count))
+                self.wfile.write(html.encode('utf-8'))
+
+            elif path == '/api/summary':
+                data = api_dashboard_summary()
+                self.send_json(data)
+
+            elif path == '/api/sessions':
+                try:
+                    data = api_sessions_summary()
+                    self.send_json(data)
+                except Exception as e:
+                    import traceback
+                    with open("C:/Users/ismai/error.log", "a") as f:
+                        f.write(f"ERROR in /api/sessions: {e}\n")
+                        traceback.print_exc(file=f)
+                    print(f"ERROR in /api/sessions: {e}", flush=True)
+                    traceback.print_exc()
+                    self.send_error(500, f'Internal error: {e}')
+
+            elif path == '/api/models':
+                data = api_model_aggregation()
+                self.send_json(data)
+
+            elif path == '/api/channels':
+                data = api_channel_breakdown()
+                self.send_json(data)
+
+            elif path == '/api/timeline':
+                data = api_token_timeline()
+                self.send_json(data)
+
+            elif path == '/api/active':
+                data = api_active_sessions()
+                self.send_json(data)
+
+            elif path == '/api/alerts':
+                data = api_alerts()
+                self.send_json(data)
+
+            elif path == '/api/full':
+                data = {
+                    'summary': api_dashboard_summary(),
+                    'sessions': api_sessions_summary(),
+                    'models': api_model_aggregation(),
+                    'channels': api_channel_breakdown(),
+                    'timeline': api_token_timeline(),
+                    'active': api_active_sessions(),
+                    'alerts': api_alerts(),
+                }
+                self.send_json(data)
+
+            elif path == '/health':
+                self.send_json({'status': 'ok', 'db': DB_PATH, 'port': DASHBOARD_PORT})
+
+            else:
+                self.send_error(404, 'Not found')
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"ERROR in do_GET: {e}", flush=True)
+            try:
+                self.send_error(500, f'Server error: {e}')
+            except:
+                pass
+
     def send_json(self, data):
         body = json.dumps(data, default=str, indent=2 if self.path == '/api/full' else None)
         self.send_response(200)
