@@ -95,3 +95,5 @@ Start\ Menu/
 .idea/
 *.sublime-project
 *.sublime-workspace
+.vercel
+.env*
