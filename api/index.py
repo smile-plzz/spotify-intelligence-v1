@@ -2,11 +2,13 @@ import json
 import os
 import sys
 
+# Add parent dir so alfred_intelligence is importable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import alfred_intelligence as ai
 
+
 def handler(request):
-    """Vercel serverless handler for all API endpoints"""
+    """Vercel serverless function handler — all API routes."""
     path = request.path or "/"
 
     try:
@@ -21,7 +23,8 @@ def handler(request):
                 "body": json.dumps(result, default=str),
             }
         elif path == "/api/summary":
-            result = ai.db_query_one("""
+            result = ai.db_query_one(
+                """
                 SELECT
                     COUNT(*) as request_files,
                     SUM(input_tokens) as total_input,
@@ -33,7 +36,8 @@ def handler(request):
                     COUNT(DISTINCT session_id) as unique_sessions,
                     SUM(estimated_cost_usd) as total_cost
                 FROM session_model_usage
-            """) or {}
+                """
+            ) or {}
             return {
                 "statusCode": 200,
                 "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
@@ -53,6 +57,7 @@ def handler(request):
             }
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         return {
             "statusCode": 500,
