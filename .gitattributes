@@ -1,0 +1,19 @@
+# Force LF line endings for Python files on all platforms
+*.py text eol=lf
+api/*.py text eol=lf
+
+# Force LF for config files
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf
+*.html text eol=lf
+
+# Default: binary for images, archives, etc.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.db binary
