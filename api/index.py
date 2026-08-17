@@ -2,13 +2,11 @@ import json
 import os
 import sys
 
-# Add parent dir so alfred_intelligence is importable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import alfred_intelligence as ai
 
 
 def handler(request):
-    """Vercel serverless function handler — all API routes."""
     path = request.path or "/"
 
     try:
