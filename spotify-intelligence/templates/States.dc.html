@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#080808}
+  a{color:#1ed760;text-decoration:none}
+  a:hover{color:#3fe37a}
+  @keyframes shimmer{0%{opacity:0.4}50%{opacity:0.9}100%{opacity:0.4}}
+  .skel{animation:shimmer 1.4s ease-in-out infinite;background:rgba(255,255,255,0.1);border-radius:4px}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#080808;color:#fff;font-family:'Inter',system-ui,sans-serif;padding:48px">
+  <a href="Overview.dc.html">← Back to app</a>
+  <h1 style="font-weight:800;letter-spacing:-0.03em;font-size:32px;margin:24px 0 8px">System states</h1>
+  <p style="color:#b3b3b3;margin:0 0 48px;max-width:60ch">Reference states for loading, empty, error and auth conditions across the dashboard.</p>
+
+  <section style="margin-bottom:56px">
+    <h2 style="font-weight:700;font-size:18px;margin:0 0 20px">Loading skeleton</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;max-width:700px">
+      <div style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:18px"><div class="skel" style="height:12px;width:60%;margin-bottom:12px"></div><div class="skel" style="height:24px;width:80%"></div></div>
+      <div style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:18px"><div class="skel" style="height:12px;width:60%;margin-bottom:12px"></div><div class="skel" style="height:24px;width:80%"></div></div>
+      <div style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:18px"><div class="skel" style="height:12px;width:60%;margin-bottom:12px"></div><div class="skel" style="height:24px;width:80%"></div></div>
+      <div style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:18px"><div class="skel" style="height:12px;width:60%;margin-bottom:12px"></div><div class="skel" style="height:24px;width:80%"></div></div>
+    </div>
+  </section>
+
+  <section style="margin-bottom:56px">
+    <h2 style="font-weight:700;font-size:18px;margin:0 0 20px">Empty — no data ingested yet</h2>
+    <div style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:16px;max-width:480px;text-align:center;padding:48px 32px">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="1.5" style="margin:0 auto 18px"><path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM4 16h4v4H4z"/></svg>
+      <div style="font-weight:700;font-size:18px;margin-bottom:8px">Nothing to show yet</div>
+      <div style="font-size:14px;color:#b3b3b3;margin-bottom:24px;line-height:1.6">Your account connected, but we haven't synced any listening history. Run an ingestion to populate this view.</div>
+      <button style="background:#1ed760;color:#000;font-weight:700;font-size:14px;padding:11px 24px;border:none;border-radius:999px;cursor:pointer">Run ingestion</button>
+    </div>
+  </section>
+
+  <section style="margin-bottom:56px">
+    <h2 style="font-weight:700;font-size:18px;margin:0 0 20px">Error — API or database failure</h2>
+    <div style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:16px;max-width:480px;text-align:center;padding:48px 32px">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.6" style="margin:0 auto 18px"><path d="M12 3l10 18H2z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>
+      <div style="font-weight:700;font-size:18px;margin-bottom:8px">Couldn't load this section</div>
+      <div style="font-size:14px;color:#b3b3b3;margin-bottom:24px;line-height:1.6">The analytics service didn't respond. This usually resolves on its own — try again in a moment.</div>
+      <button style="background:rgba(255,255,255,0.08);color:#fff;font-weight:600;font-size:14px;padding:11px 24px;border:none;border-radius:999px;cursor:pointer">Retry</button>
+    </div>
+  </section>
+
+  <section style="margin-bottom:56px">
+    <h2 style="font-weight:700;font-size:18px;margin:0 0 20px">Unauthenticated</h2>
+    <p style="font-size:14px;color:#b3b3b3;max-width:60ch">Handled by the <a href="Landing.dc.html">Landing</a> page — shown whenever there's no valid session.</p>
+  </section>
+
+  <section>
+    <h2 style="font-weight:700;font-size:18px;margin:0 0 20px">Token expired / reauth needed</h2>
+    <div style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:16px;max-width:480px;text-align:center;padding:48px 32px">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="1.5" style="margin:0 auto 18px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <div style="font-weight:700;font-size:18px;margin-bottom:8px">Your session expired</div>
+      <div style="font-size:14px;color:#b3b3b3;margin-bottom:24px;line-height:1.6">Reconnect your Spotify account to keep viewing your data. Nothing synced so far is lost.</div>
+      <a href="Auth Callback.dc.html" style="display:inline-block;background:#1ed760;color:#000;font-weight:700;font-size:14px;padding:11px 24px;border-radius:999px">Reconnect Spotify</a>
+    </div>
+  </section>
+</div>]]>
+</x-dc>
+</body>
+</html>
