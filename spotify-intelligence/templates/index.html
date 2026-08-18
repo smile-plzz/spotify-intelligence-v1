@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Intelligence — Personal Music Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+        </svg>
+        <span class="logo-text">Spotify Intelligence</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#overview" class="active">Overview</a></li>
+        <li><a href="#taste">Taste</a></li>
+        <li><a href="#evolution">Evolution</a></li>
+        <li><a href="#listening">Listening</a></li>
+        <li><a href="#library">Library</a></li>
+        <li><a href="#intelligence">Intelligence</a></li>
+        <li><a href="#live">Live</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+          </svg>
+          <span>smile_plzz_</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Overview Section -->
+      <section id="overview" class="section active">
+        <header class="section-header">
+          <h1>Your Music Intelligence</h1>
+          <p class="subtitle">A complete perspective of you as a listener</p>
+        </header>
+
+        <!-- Currently Playing Card -->
+        <div class="card currently-playing-card" id="currently-playing-card">
+          <div class="card-content">
+            <div class="card-label">Now Playing</div>
+            <div class="now-playing-placeholder" id="now-playing-placeholder">
+              <div class="pulse"></div>
+              <span>Waiting for playback...</span>
+            </div>
+            <div class="now-playing-content" id="now-playing-content" style="display:none">
+              <div class="np-artist" id="np-artist"></div>
+              <div class="np-track" id="np-track"></div>
+              <div class="np-album" id="np-album"></div>
+              <div class="np-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" id="np-progress-fill"></div>
+                </div>
+                <span class="progress-time">
+                  <span id="np-current">0:00</span> / <span id="np-total">0:00</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="overview-stats">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="stat-value" id="stat-total-plays">—</div>
+            <div class="stat-label">Total Plays</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="stat-value" id="stat-unique-artists">—</div>
+            <div class="stat-label">Unique Artists</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <div class="stat-value" id="stat-unique-tracks">—</div>
+            <div class="stat-label">Unique Tracks</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+            <div class="stat-value" id="stat-unique-albums">—</div>
+            <div class="stat-label">Unique Albums</div>
+          </div>
+        </div>
+
+        <!-- Two-column layout -->
+        <div class="two-col">
+          <!-- Top Artists -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Top Artists</h2>
+              <span class="card-badge">Long-term</span>
+            </div>
+            <div class="card-content">
+              <div class="chart-container">
+                <canvas id="top-artists-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Tracks -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Top Tracks</h2>
+              <span class="card-badge">Long-term</span>
+            </div>
+            <div class="card-content">
+              <div class="chart-container">
+                <canvas id="top-tracks-chart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Genre Universe Preview -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Genre Universe</h2>
+            <a href="#taste" class="card-link">Explore full map →</a>
+          </div>
+          <div class="card-content">
+            <div class="genre-cloud" id="genre-cloud"></div>
+          </div>
+        </div>
+
+        <!-- Listener Archetype -->
+        <div class="card archetype-card" id="archetype-card">
+          <div class="card-content archetype-content">
+            <div class="archetype-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div class="archetype-text">
+              <div class="archetype-label">Listener Archetype</div>
+              <div class="archetype-name" id="archetype-name">Analyzing...</div>
+              <div class="archetype-signals" id="archetype-signals"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Music DNA -->
+        <div class="card">
+          <div class="card-header">
+            <h2>My Music DNA</h2>
+          </div>
+          <div class="card-content">
+            <div class="dna-grid" id="dna-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Taste Section -->
+      <section id="taste" class="section">
+        <header class="section-header">
+          <h1>Taste Intelligence</h1>
+          <p class="subtitle">Genres, artists, and how they connect</p>
+        </header>
+
+        <!-- Genre Universe (full) -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Genre Universe — Your Musical World</h2>
+            <span class="card-badge" id="genre-count-badge">0 genres</span>
+          </div>
+          <div class="card-content">
+            <div class="genre-network" id="genre-network">
+              <div class="chart-container large">
+                <canvas id="genre-chart"></canvas>
+              </div>
+            </div>
+            <div class="genre-families" id="genre-families"></div>
+          </div>
+        </div>
+
+        <!-- Genre Diversity Score -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Genre Diversity</h2>
+          </div>
+          <div class="card-content">
+            <div class="diversity-meter">
+              <div class="diversity-score">
+                <div class="score-ring">
+                  <svg viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="var(--bg-2)" stroke-width="8"/>
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="8"
+                      stroke-dasharray="326.7" stroke-dashoffset="326.7" stroke-linecap="round"
+                      transform="rotate(-90 60 60)" id="diversity-ring"/>
+                  </svg>
+                  <div class="score-value" id="diversity-score">0%</div>
+                </div>
+                <div class="score-label">Diversity Index</div>
+                <div class="score-desc" id="diversity-desc">Based on Shannon diversity of genre distribution</div>
+              </div>
+              <div class="diversity-stats">
+                <div class="d-stat">
+                  <div class="d-stat-value" id="stat-genre-count">0</div>
+                  <div class="d-stat-label">Unique Genres</div>
+                </div>
+                <div class="d-stat">
+                  <div class="d-stat-value" id="stat-top-genre-share">0%</div>
+                  <div class="d-stat-label">Top Genre Share</div>
+                </div>
+                <div class="d-stat">
+                  <div class="d-stat-value" id="stat-genre-families">0</div>
+                  <div class="d-stat-label">Genre Families</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Artist Relationship Map -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Artist Map — Your Strongest Connections</h2>
+          </div>
+          <div class="card-content">
+            <div class="artist-list" id="artist-list"></div>
+          </div>
+        </div>
+
+        <!-- Discovery vs Comfort -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Exploration ↔ Comfort Index</h2>
+          </div>
+          <div class="card-content">
+            <div class="ec-meter">
+              <div class="ec-bar">
+                <div class="ec-exploration" id="ec-exploration" style="width:50%"></div>
+                <div class="ec-comfort" id="ec-comfort" style="width:50%"></div>
+                <div class="ec-divider"></div>
+                <div class="ec-labels">
+                  <span class="ec-label exploration">Exploration</span>
+                  <span class="ec-label comfort">Comfort</span>
+                </div>
+              </div>
+              <div class="ec-readout">
+                <div class="ec-value" id="ec-discovery">—</div>
+                <div class="ec-label">Discovery Rate</div>
+                <div class="ec-value" id="ec-repeat">—</div>
+                <div class="ec-label">Repeat Rate</div>
+                <div class="ec-behavior" id="ec-behavior">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Evolution Section -->
+      <section id="evolution" class="section">
+        <header class="section-header">
+          <h1>Taste Evolution</h1>
+          <p class="subtitle">How your music taste changes over time</p>
+        </header>
+
+        <!-- Taste Timeline -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Listening Timeline</h2>
+          </div>
+          <div class="card-content">
+            <div class="chart-container">
+              <canvas id="timeline-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Evolution -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <h2>Monthly Genre Evolution</h2>
+            </div>
+            <div class="card-content">
+              <div class="chart-container">
+                <canvas id="genre-evolution-chart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Listening Eras</h2>
+            </div>
+            <div class="card-content">
+              <div class="eras-list" id="eras-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Taste Shifts -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Significant Taste Shifts</h2>
+          </div>
+          <div class="card-content">
+            <div class="shifts-list" id="shifts-list">
+              <p class="empty-state">No significant shifts detected in current data range.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Listening Section -->
+      <section id="listening" class="section">
+        <header class="section-header">
+          <h1>Listening Patterns</h1>
+          <p class="subtitle">When, how, and how much you listen</p>
+        </header>
+
+        <!-- Daily Music Clock -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Daily Music Clock</h2>
+          </div>
+          <div class="card-content">
+            <div class="clock-chart">
+              <div class="clock-visual" id="clock-visual"></div>
+              <div class="clock-chart-wrap">
+                <canvas id="hourly-chart"></canvas>
+              </div>
+            </div>
+            <div class="time-zones" id="time-zones"></div>
+          </div>
+        </div>
+
+        <!-- Day of Week -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Weekday vs Weekend Listening</h2>
+          </div>
+          <div class="card-content">
+            <div class="chart-container">
+              <canvas id="daily-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Listening Sessions</h2>
+            <span class="card-badge" id="session-count-badge">0 sessions</span>
+          </div>
+          <div class="card-content">
+            <div class="session-stats" id="session-stats"></div>
+            <div class="chart-container">
+              <canvas id="session-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Library Section -->
+      <section id="library" class="section">
+        <header class="section-header">
+          <h1>Your Library</h1>
+          <p class="subtitle">Saved tracks, albums, and playlists</p>
+        </header>
+
+        <div class="stats-mini" id="library-stats"></div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <h2>Saved Tracks</h2>
+              <span class="card-badge" id="saved-tracks-count">0</span>
+            </div>
+            <div class="card-content">
+              <div class="library-table" id="saved-tracks-table"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Saved Albums</h2>
+              <span class="card-badge" id="saved-albums-count">0</span>
+            </div>
+            <div class="card-content">
+              <div class="library-table" id="saved-albums-table"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Playlists</h2>
+            <span class="card-badge" id="playlists-count">0</span>
+          </div>
+          <div class="card-content">
+            <div class="library-table" id="playlists-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Intelligence Section -->
+      <section id="intelligence" class="section">
+        <header class="section-header">
+          <h1>AI Intelligence</h1>
+          <p class="subtitle">Insights, anomalies, and recommendations</p>
+        </header>
+
+        <!-- AI Insights -->
+        <div class="card">
+          <div class="card-header">
+            <h2>AI-Generated Insights</h2>
+            <span class="card-badge insight">Grounded in real data</span>
+          </div>
+          <div class="card-content">
+            <div class="insights-list" id="insights-list">
+              <p class="empty-state">Running insight generation...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anomalies -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Interesting Things About Your Listening</h2>
+            <span class="card-badge" id="anomalies-count">0 findings</span>
+          </div>
+          <div class="card-content">
+            <div class="anomalies-grid" id="anomalies-grid">
+              <p class="empty-state">No anomalies detected yet.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Personalized Recommendations</h2>
+            <span class="card-badge" id="recs-count">0 suggestions</span>
+          </div>
+          <div class="card-content">
+            <div class="recs-list" id="recs-list">
+              <p class="empty-state">No recommendations available yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Section -->
+      <section id="live" class="section">
+        <header class="section-header">
+          <h1>Real-Time</h1>
+          <p class="subtitle">Live Spotify activity</p>
+        </header>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Currently Playing</h2>
+            <span class="status-dot" id="live-status-dot"></span>
+            <span class="status-text" id="live-status-text">Connecting...</span>
+          </div>
+          <div class="card-content">
+            <div class="live-player" id="live-player">
+              <div class="live-placeholder">
+                <div class="pulse"></div>
+                <p>Waiting for Spotify playback...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Recent Activity</h2>
+          </div>
+          <div class="card-content">
+            <div class="recent-plays" id="recent-plays"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

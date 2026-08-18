@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Secrets
+.env
+.env.local
+*.secret
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated data
+profiles/
+prompts/
+posts/
+test_*.png
+test_*.jpg
+integration_test_*.jpg
+api_cache/
+analytics_results.json
+analyzer_cache/
