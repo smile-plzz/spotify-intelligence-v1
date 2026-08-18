@@ -581,6 +581,235 @@ body {
   white-space: nowrap;
 }
 
+/* ===== Listening Patterns ===== */
+.listen-patterns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.listen-pattern-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.listen-pattern-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.listen-pattern-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+
+.listen-pattern-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.02em;
+}
+
+.listen-pattern-sub {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+
+.listen-pattern-bar {
+  margin-top: 12px;
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.listen-pattern-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.listen-pattern-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.listen-pattern-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.listen-pattern-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ===== Discovery Timeline ===== */
+.discovery-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.discovery-timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+  padding: 8px 0;
+}
+
+.discovery-timeline-bar {
+  height: 6px;
+  background: var(--bg-3);
+  border-radius: 3px;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.discovery-timeline-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.discovery-timeline-label {
+  width: 120px;
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: right;
+  padding-right: 16px;
+  flex-shrink: 0;
+}
+
+.discovery-timeline-value {
+  width: 60px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: left;
+  padding-left: 12px;
+  flex-shrink: 0;
+}
+
+/* ===== Track Cloud ===== */
+.track-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+  min-height: 80px;
+}
+
+.track-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: var(--bg-3);
+  color: var(--text-2);
+  border: 1px solid transparent;
+  transition: all var(--transition);
+}
+
+.track-tag:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(29, 185, 84, 0.08);
+}
+
+.track-tag.popular {
+  background: rgba(29, 185, 84, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ===== Era Badge ===== */
+.era-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.era-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.era-badge-name {
+  font-weight: 600;
+}
+
+.era-badge-years {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ===== Stats Mini ===== */
+.stats-mini {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.stats-mini-item {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.stats-mini-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.stats-mini-label {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* ===== Insights List ===== */
 .insights-list { display: flex; flex-direction: column; gap: 12px; }
 
