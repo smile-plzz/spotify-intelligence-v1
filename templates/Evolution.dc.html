@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolution — Spotify Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar-desktop">
+    <div class="sidebar-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#1ed760"><circle cx="12" cy="12" r="11"/><path d="M7 9.5c3-1 7-1 10 .6M7.5 12.7c2.5-.8 5.5-.8 8 .4M8.3 15.5c1.8-.6 3.8-.6 5.4.2" stroke="#080808" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      <span class="sidebar-logo-text">Spotify Intelligence</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="Overview.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview
+      </a>
+      <a href="Taste.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste
+      </a>
+      <a href="Evolution.dc.html" class="nav-link active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution
+      </a>
+      <a href="Listening.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening
+      </a>
+      <a href="Library.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library
+      </a>
+      <a href="Intelligence.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence
+      </a>
+      <a href="Live.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.5 5.5a9 9 0 000 13M18.5 5.5a9 9 0 010 13"/></svg>Live
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="Settings.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings
+      </a>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>
+        </div>
+        <span class="sidebar-user-name">smile_plzz_</span>
+      </div>
+    </div>
+  </aside>
+
+  <div style="display:flex;flex-direction:column;min-width:0;position:relative">
+    <div class="glow glow-cyan"></div>
+    <header class="page-header">
+      <div class="page-header-inner">
+        <h1 class="page-title">Evolution</h1>
+        <p class="page-subtitle">How your listening has changed over time</p>
+      </div>
+    </header>
+
+    <main class="main-content">
+
+      <section>
+        <h2 class="section-title">Listening timeline</h2>
+        <div class="card" style="padding:28px 22px 18px">
+          <div class="evolution-chart" style="display:flex;align-items:flex-end;gap:10px;height:120px">
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:38%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:60%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2025-10</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:52%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:55%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2025-11</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:44%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:70%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2025-12</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:68%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:48%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2026-01</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:55%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:82%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2026-02</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:70%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:95%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2026-03</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:48%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:63%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2026-04</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:58%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:78%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2026-05</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:62%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:88%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2026-06</div></div>
+            <div class="evolution-bar" style="flex:1;background:rgba(255,255,255,0.08);height:52%;border-radius:4px 4px 0 0;position:relative"><div class="evolution-bar-fill" style="position:absolute;bottom:0;left:0;right:0;background:#1ed760;height:70%;border-radius:4px 4px 0 0"></div><div class="evolution-bar-label" style="position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:#777">2026-07</div></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#777"><span>Oct '25</span><span>Dec '25</span><span>Feb '26</span><span>Apr '26</span><span>Jun '26</span><span>Aug '26</span></div>
+          <p style="font-size:13.5px;color:#b3b3b3;margin-top:16px">Your monthly play count over the past year.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Month-by-month genres</h2>
+        <div class="card">
+          <div style="display:flex;flex-direction:column;gap:22px">
+            <div>
+              <div class="genre-family"><span class="genre-family-name">Alternative Rock</span><span class="genre-family-count" style="color:#777;font-variant-numeric:tabular-nums">7,204 plays</span><div class="genre-family-tags"><span class="genre-tag primary">Alternative Rock</span><span class="genre-tag secondary">Indie Rock</span><span class="genre-tag secondary">Post-Punk</span></div></div>
+            </div>
+            <div>
+              <div class="genre-family"><span class="genre-family-name">Indie/Alternative</span><span class="genre-family-count" style="color:#777;font-variant-numeric:tabular-nums">3,110 plays</span><div class="genre-family-tags"><span class="genre-tag secondary">Indie Pop</span><span class="genre-tag muted">Art Pop</span></div></div>
+            </div>
+            <div>
+              <div class="genre-family"><span class="genre-family-name">Electronic</span><span class="genre-family-count" style="color:#777;font-variant-numeric:tabular-nums">1,876 plays</span><div class="genre-family-tags"><span class="genre-tag muted">Synth-Pop</span><span class="genre-tag muted">Ambient</span></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav class="mobile-tabs" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#101010;border-top:1px solid rgba(255,255,255,0.09);overflow-x:auto;padding:10px 14px;gap:24px;z-index:20">
+    <a href="Overview.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview</a>
+    <a href="Taste.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste</a>
+    <a href="Evolution.dc.html" class="mobile-tab active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution</a>
+    <a href="Listening.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening</a>
+    <a href="Library.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library</a>
+    <a href="Intelligence.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence</a>
+    <a href="Live.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7"/></svg>Live</a>
+  </nav>
+</div>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

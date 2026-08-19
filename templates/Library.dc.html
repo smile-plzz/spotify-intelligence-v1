@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library — Spotify Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar-desktop">
+    <div class="sidebar-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#1ed760"><circle cx="12" cy="12" r="11"/><path d="M7 9.5c3-1 7-1 10 .6M7.5 12.7c2.5-.8 5.5-.8 8 .4M8.3 15.5c1.8-.6 3.8-.6 5.4.2" stroke="#080808" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      <span class="sidebar-logo-text">Spotify Intelligence</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="Overview.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview</a>
+      <a href="Taste.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste</a>
+      <a href="Evolution.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution</a>
+      <a href="Listening.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening</a>
+      <a href="Library.dc.html" class="nav-link active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library</a>
+      <a href="Intelligence.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence</a>
+      <a href="Live.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.5 5.5a9 9 0 000 13M18.5 5.5a9 9 0 010 13"/></svg>Live</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="Settings.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg></div>
+        <span class="sidebar-user-name">smile_plzz_</span>
+      </div>
+    </div>
+  </aside>
+
+  <div style="display:flex;flex-direction:column;min-width:0;position:relative">
+    <div class="glow glow-green"></div>
+    <header class="page-header">
+      <div class="page-header-inner">
+        <h1 class="page-title">Library</h1>
+        <p class="page-subtitle">Saved tracks, albums and playlists</p>
+      </div>
+    </header>
+
+    <main class="main-content">
+
+      <div class="library-tabs" id="lib-tabs">
+        <button class="tab-btn active" data-tab="tracks" style="background:rgba(30,215,96,0.15);color:#1ed760;font-weight:700">Tracks</button>
+        <button class="tab-btn" data-tab="albums" style="background:transparent;color:#b3b3b3;font-weight:600">Albums</button>
+        <button class="tab-btn" data-tab="playlists" style="background:transparent;color:#b3b3b3;font-weight:600">Playlists</button>
+      </div>
+
+      <section>
+        <h2 class="section-title" id="lib-section-title">Saved tracks</h2>
+
+        <div class="lib-tracks" id="lib-tracks" style="display:block">
+          <table class="library-table">
+            <thead><tr><th style="width:38%">Track</th><th>Artist</th><th>Album</th><th style="width:90px">Length</th><th style="width:110px">Added</th></tr></thead>
+            <tbody>
+              <tr><td>Midnight Static</td><td>Cassette Ghosts</td><td>Analog Dreams</td><td>3:42</td><td>12 Mar</td></tr>
+              <tr><td>Low Tide</td><td>Harbor Lights</td><td>The Wreckage</td><td>4:11</td><td>8 Feb</td></tr>
+              <tr><td>Amber Hours</td><td>Fenwick Road</td><td>Golden Hour</td><td>3:58</td><td>2 Jan</td></tr>
+              <tr><td>Rearview</td><td>Nova Kestrel</td><td>Shadow Lines</td><td>3:24</td><td>28 Dec</td></tr>
+              <tr><td>Static Bloom</td><td>Salt &amp; Pine</td><td>Root &amp; Resin</td><td>4:06</td><td>15 Nov</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="lib-albums" id="lib-albums" style="display:none">
+          <div class="album-grid" id="albums-grid">
+            <div class="album-item">
+              <div class="album-art plate"></div>
+              <div class="album-name">Analog Dreams</div>
+              <div class="album-meta">Cassette Ghosts</div>
+            </div>
+            <div class="album-item">
+              <div class="album-art plate"></div>
+              <div class="album-name">The Wreckage</div>
+              <div class="album-meta">Harbor Lights</div>
+            </div>
+            <div class="album-item">
+              <div class="album-art plate"></div>
+              <div class="album-name">Golden Hour</div>
+              <div class="album-meta">Fenwick Road</div>
+            </div>
+            <div class="album-item">
+              <div class="album-art plate"></div>
+              <div class="album-name">Shadow Lines</div>
+              <div class="album-meta">Nova Kestrel</div>
+            </div>
+            <div class="album-item">
+              <div class="album-art plate"></div>
+              <div class="album-name">Root &amp; Resin</div>
+              <div class="album-meta">Salt &amp; Pine</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lib-playlists" id="lib-playlists" style="display:none">
+          <div class="playlist-grid" id="playlists-grid">
+            <div class="playlist-card">
+              <div class="playlist-name">Late Night Shores</div>
+              <div class="playlist-track-count">42 tracks</div>
+              <div class="playlist-badge public">Public</div>
+            </div>
+            <div class="playlist-card">
+              <div class="playlist-name">Commute Rotation</div>
+              <div class="playlist-track-count">37 tracks</div>
+              <div class="playlist-badge private">Private</div>
+            </div>
+            <div class="playlist-card">
+              <div class="playlist-name">Live Sessions</div>
+              <div class="playlist-track-count">19 tracks</div>
+              <div class="playlist-badge collaborative">Collaborative</div>
+            </div>
+            <div class="playlist-card">
+              <div class="playlist-name">Analog Dreams II</div>
+              <div class="playlist-track-count">24 tracks</div>
+              <div class="playlist-badge public">Public</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav class="mobile-tabs" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#101010;border-top:1px solid rgba(255,255,255,0.09);overflow-x:auto;padding:10px 14px;gap:24px;z-index:20">
+    <a href="Overview.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview</a>
+    <a href="Taste.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste</a>
+    <a href="Evolution.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution</a>
+    <a href="Listening.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening</a>
+    <a href="Library.dc.html" class="mobile-tab active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library</a>
+    <a href="Intelligence.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence</a>
+    <a href="Live.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7"/></svg>Live</a>
+  </nav>
+</div>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

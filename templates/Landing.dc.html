@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spotify Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#080808;color:#fff;font-family:'Inter',system-ui,sans-serif;overflow:hidden}
+  .btn-primary:hover{background:#3fe37a !important}
+  .btn-secondary:hover{background:rgba(255,255,255,0.14) !important}
+  .feat:hover{background:rgba(255,255,255,0.085) !important;transform:translateY(-2px)}
+  .feat{transition:all 240ms cubic-bezier(0.22,1,0.36,1)}
+  .btn-primary{display:inline-flex;align-items:center;gap:10px;background:#1ed760;color:#000;font-weight:700;font-size:15px;padding:14px 26px;border-radius:999px;box-shadow:0 8px 32px rgba(30,215,96,0.25);text-decoration:none;transition:background 180ms}
+  .btn-primary:hover{background:#3fe37a !important}
+  .btn-secondary{display:inline-flex;align-items:center;background:rgba(255,255,255,0.08);color:#fff;font-weight:600;font-size:15px;padding:14px 26px;border-radius:999px;text-decoration:none;transition:background 180ms}
+  .btn-secondary:hover{background:rgba(255,255,255,0.14) !important}
+  .feat{background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:22px}
+  .feat-icon{width:22px;height:22px;fill:none;stroke:#1ed760;stroke-width:1.6;flex:0 0 auto}
+  .feat-icon.purple{stroke:#7c3aed}
+  .feat-icon.cyan{stroke:#22d3ee}
+  .feat-title{font-weight:700;font-size:16px;margin:14px 0 6px}
+  .feat-description{font-size:13.5px;color:#b3b3b3;line-height:1.5}
+  .navlink{transition:background 180ms,color 180ms}
+  .navlink:hover{background:rgba(255,255,255,0.06) !important;color:#fff !important}
+  .navlink.active:hover{background:rgba(30,215,96,0.14) !important}
+  th,td{padding:10px 14px;text-align:left;font-size:13.5px}
+  th{color:#777;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.09)}
+  td{border-bottom:1px solid rgba(255,255,255,0.06);color:#e5e5e5}
+  .seg-btn{transition:background 160ms,color 160ms}
+  .plate{aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,rgba(30,215,96,0.25),rgba(124,58,237,0.2));margin-bottom:10px}
+  .skel{animation:shimmer 1.4s ease-in-out infinite;background:rgba(255,255,255,0.1);border-radius:4px}
+  @keyframes shimmer{0%{opacity:0.4}50%{opacity:0.9}100%{opacity:0.4}}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .spinner{animation:spin 1s linear infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .pulse{animation:pulse 1.3s ease-in-out infinite}
+  .navlink.active{font-weight:600}
+  .stat-value{font-weight:800;font-size:28px;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+  .stat-label{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;font-weight:700}
+</style>
+</head>
+<body>
+<div style="min-height:100vh;background:#080808;color:#ffffff;font-family:'Inter',system-ui,sans-serif;position:relative;overflow:hidden">
+  <div style="position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(circle,rgba(30,215,96,0.16),transparent 60%);pointer-events:none"></div>
+
+  <header style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:28px 56px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#1ed760"><circle cx="12" cy="12" r="11"/><path d="M7 9.5c3-1 7-1 10 .6M7.5 12.7c2.5-.8 5.5-.8 8 .4M8.3 15.5c1.8-.6 3.8-.6 5.4.2" stroke="#080808" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      <span style="font-weight:700;font-size:17px;letter-spacing:-0.01em">Spotify Intelligence</span>
+    </div>
+    <span style="font-size:12px;color:#777;padding:5px 12px;border:1px solid rgba(255,255,255,0.12);border-radius:999px">Personal project</span>
+  </header>
+
+  <main style="position:relative;max-width:960px;margin:0 auto;padding:64px 24px 96px">
+
+    <section style="text-align:center;padding:56px 0 80px">
+      <p style="text-transform:uppercase;letter-spacing:0.16em;font-size:12px;font-weight:600;color:#1ed760;margin:0 0 20px">Listening intelligence, from your own data</p>
+      <h1 style="font-weight:800;letter-spacing:-0.04em;font-size:64px;line-height:1.04;margin:0 0 24px">A closer read of<br>how you listen.</h1>
+      <p style="max-width:52ch;margin:0 auto 36px;font-size:18px;line-height:1.6;color:#b3b3b3">Connect your Spotify account to see your genre map, taste evolution, listening patterns and a personalized listener profile — built from your own history, nothing invented.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a href="Auth Callback.dc.html" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M7 10c3.2-1 6.8-1 10 .6M7.5 13.2c2.6-.8 5.4-.8 8 .4M8.3 16c1.8-.6 3.8-.6 5.6.2"/></svg>
+          Connect with Spotify
+        </a>
+        <a href="#permissions" class="btn-secondary">See what data we use</a>
+      </div>
+    </section>
+
+    <section style="padding:56px 0;border-top:1px solid rgba(255,255,255,0.09)">
+      <h2 style="font-weight:700;letter-spacing:-0.025em;font-size:26px;margin:0 0 32px">What you'll get</h2>
+      <div class="feat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px">
+        <div class="feat">
+          <svg class="feat-icon" width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>
+          <div class="feat-title">Music DNA</div>
+          <div class="feat-description">Nine dimensions of your taste — energy, acousticness, danceability and more.</div>
+        </div>
+        <div class="feat">
+          <svg class="feat-icon" width="22" height="22" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+          <div class="feat-title">Taste evolution</div>
+          <div class="feat-description">A month-by-month timeline of how your genres and artists have shifted.</div>
+        </div>
+        <div class="feat">
+          <svg class="feat-icon" width="22" height="22" viewBox="0 0 24 24"><path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM4 16h4v4H4z"/></svg>
+          <div class="feat-title">Genre universe</div>
+          <div class="feat-description">Every genre you listen to, mapped into families with play-weighted sizing.</div>
+        </div>
+        <div class="feat">
+          <svg class="feat-icon" width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          <div class="feat-title">Listening patterns</div>
+          <div class="feat-description">Time-of-day, day-of-week and session-length behavior.</div>
+        </div>
+        <div class="feat">
+          <svg class="feat-icon" width="22" height="22" viewBox="0 0 24 24"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>
+          <div class="feat-title">AI insights</div>
+          <div class="feat-description">Grounded observations — archetype, anomalies, and why they were flagged.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="permissions" style="padding:56px 0;border-top:1px solid rgba(255,255,255,0.09)">
+      <h2 style="font-weight:700;letter-spacing:-0.025em;font-size:26px;margin:0 0 8px">Data &amp; permissions</h2>
+      <p style="color:#777;margin:0 0 32px;max-width:60ch;font-size:14px">Read-only access. We never post, modify playlists, or control playback on your behalf.</p>
+      <div class="permissions-list" style="display:flex;flex-direction:column">
+        <div class="permission-row" style="display:flex;gap:20px;padding:18px 0;border-top:1px solid rgba(255,255,255,0.09)">
+          <code style="font-size:12px;color:#777;flex:0 0 220px">user-read-recently-played</code>
+          <span style="flex:1;font-size:14px;color:#e5e5e5">Your recent listening history, to build sessions and time-of-day patterns.</span>
+        </div>
+        <div class="permission-row" style="display:flex;gap:20px;padding:18px 0;border-top:1px solid rgba(255,255,255,0.09)">
+          <code style="font-size:12px;color:#777;flex:0 0 220px">user-top-read</code>
+          <span style="flex:1;font-size:14px;color:#e5e5e5">Your top artists and tracks across short, medium and long time ranges.</span>
+        </div>
+        <div class="permission-row" style="display:flex;gap:20px;padding:18px 0;border-top:1px solid rgba(255,255,255,0.09)">
+          <code style="font-size:12px;color:#777;flex:0 0 220px">user-library-read</code>
+          <span style="flex:1;font-size:14px;color:#e5e5e5">Saved tracks, albums and playlists in your library.</span>
+        </div>
+        <div class="permission-row" style="display:flex;gap:20px;padding:18px 0;border-top:1px solid rgba(255,255,255,0.09)">
+          <code style="font-size:12px;color:#777;flex:0 0 220px">user-read-currently-playing</code>
+          <span style="flex:1;font-size:14px;color:#e5e5e5">What's playing right now, for the Live view.</span>
+        </div>
+        <div class="permission-row" style="display:flex;gap:20px;padding:18px 0;border-top:1px solid rgba(255,255,255,0.09);border-bottom:1px solid rgba(255,255,255,0.09)">
+          <code style="font-size:12px;color:#777;flex:0 0 220px">user-read-playback-state</code>
+          <span style="flex:1;font-size:14px;color:#e5e5e5">Playback progress and device state for the currently-playing card.</span>
+        </div>
+      </div>
+      <p style="font-size:13px;color:#777;margin-top:20px">Disconnect anytime from Settings — your synced data can be cleared with it.</p>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

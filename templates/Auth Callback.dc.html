@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect — Spotify Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#080808;color:#fff;font-family:'Inter',system-ui,sans-serif;overflow:hidden}
+  .auth-callback{position:relative;overflow:hidden;min-height:100vh}
+  .auth-glow{position:absolute;top:-160px;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(circle,rgba(30,215,96,0.14),transparent 60%);pointer-events:none}
+  .auth-inner{position:relative;text-align:center;max-width:360px}
+  .spinner{width:42px;height:42px;margin-bottom:24px;animation:spin 1s linear infinite}
+  .spinner svg{width:42px;height:42px;fill:none;stroke:#1ed760;stroke-width:1.6;stroke-dasharray:42 14}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .pulse{animation:pulse 1.3s ease-in-out infinite}
+  .auth-step{display:flex;flex-direction:column;gap:14px;text-align:left}
+  .auth-step-done{display:flex;align-items:center;gap:12px}
+  .auth-step-done svg{width:16px;height:16px;fill:none;stroke:#1ed760;stroke-width:2}
+  .auth-step-done-text{font-size:14px;color:#e5e5e5}
+  .auth-step-pending{display:flex;align-items:center;gap:12px;opacity:0.4}
+  .auth-step-pending svg{width:16px;height:16px;fill:none;stroke:#777;stroke-width:2}
+  .auth-step-pending-text{font-size:14px;color:#777}
+</style>
+</head>
+<body class="auth-callback">
+<div class="auth-glow"></div>
+<div class="auth-inner">
+  <svg class="spinner" width="42" height="42" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="42 14"/></svg>
+  <h1 style="font-weight:700;letter-spacing:-0.02em;font-size:24px;margin:0 0 8px">Connecting your account</h1>
+  <p style="color:#b3b3b3;font-size:14px;margin:0 0 28px">This only takes a moment.</p>
+  <div style="display:flex;flex-direction:column;gap:14px;text-align:left">
+    <div class="auth-step-done">
+      <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+      <span class="auth-step-done-text">Authenticated with Spotify</span>
+    </div>
+    <div class="auth-step-done">
+      <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+      <span class="auth-step-done-text">Fetched your profile</span>
+    </div>
+    <div class="auth-step-done pulse">
+      <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+      <span class="auth-step-done-text">Syncing recent listening &amp; library…</span>
+    </div>
+    <div class="auth-step-pending">
+      <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+      <span class="auth-step-pending-text">Computing analytics</span>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#555;margin-top:32px">First sync can take a minute for large libraries.</p>
+</div>
+</body>
+</html>

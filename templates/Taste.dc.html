@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taste — Spotify Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar-desktop">
+    <div class="sidebar-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#1ed760"><circle cx="12" cy="12" r="11"/><path d="M7 9.5c3-1 7-1 10 .6M7.5 12.7c2.5-.8 5.5-.8 8 .4M8.3 15.5c1.8-.6 3.8-.6 5.4.2" stroke="#080808" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      <span class="sidebar-logo-text">Spotify Intelligence</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="Overview.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview
+      </a>
+      <a href="Taste.dc.html" class="nav-link active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste
+      </a>
+      <a href="Evolution.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution
+      </a>
+      <a href="Listening.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening
+      </a>
+      <a href="Library.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library
+      </a>
+      <a href="Intelligence.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence
+      </a>
+      <a href="Live.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.5 5.5a9 9 0 000 13M18.5 5.5a9 9 0 010 13"/></svg>Live
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="Settings.dc.html" class="nav-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings
+      </a>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>
+        </div>
+        <span class="sidebar-user-name">smile_plzz_</span>
+      </div>
+    </div>
+  </aside>
+
+  <div style="display:flex;flex-direction:column;min-width:0;position:relative">
+    <div class="glow glow-purple"></div>
+    <header class="page-header">
+      <div class="page-header-inner">
+        <h1 class="page-title">Taste</h1>
+        <p class="page-subtitle">Genres, Music DNA and how you relate to artists</p>
+      </div>
+    </header>
+
+    <main class="main-content">
+
+      <section class="two-col">
+        <div class="card">
+          <div style="font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Genre diversity — Shannon index</div>
+          <div class="diversity-score">
+            <div class="diversity-value">3.42</div>
+            <div class="diversity-badge">High diversity</div>
+          </div>
+          <div class="diversity-bar" style="height:8px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden"><div style="height:100%;width:82%;background:linear-gradient(90deg,#1ed760,#22d3ee);border-radius:999px"></div></div>
+          <div class="diversity-caption" style="font-size:13.5px;color:#b3b3b3;margin-top:14px;line-height:1.6">Across 24 genres — wider than most listeners, who cluster around 6–10.</div>
+        </div>
+        <div class="card">
+          <div style="font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Discovery ↔ comfort index</div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#777;margin:14px 0 6px"><span>Comfort</span><span>Discovery</span></div>
+          <div class="discovery-meter-track" style="height:10px;border-radius:999px;background:rgba(255,255,255,0.08);position:relative;overflow:hidden">
+            <div class="discovery-comfort" style="position:absolute;left:0;top:0;bottom:0;width:62%;background:rgba(255,255,255,0.18)"></div>
+            <div class="discovery-discovery" style="position:absolute;left:62%;top:0;bottom:0;right:0;background:#7c3aed"></div>
+          </div>
+          <div class="discovery-caption" style="font-size:13.5px;color:#b3b3b3;margin-top:14px;line-height:1.6">62% of plays are repeat favorites; 38% are tracks from artists you've followed for under 3 months.</div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Genre universe</h2>
+        <div class="genre-families">
+          <div class="genre-family">
+            <span class="genre-family-name">Rock</span>
+            <span class="genre-family-count">6,204 plays</span>
+            <div class="genre-family-tags"><span class="genre-tag primary">Alternative Rock</span><span class="genre-tag secondary">Indie Rock</span><span class="genre-tag secondary">Post-Punk</span><span class="genre-tag muted">Shoegaze</span></div>
+          </div>
+          <div class="genre-family">
+            <span class="genre-family-name">Indie/Alternative</span>
+            <span class="genre-family-count">3,110 plays</span>
+            <div class="genre-family-tags"><span class="genre-tag secondary">Indie Pop</span><span class="genre-tag muted">Art Pop</span><span class="genre-tag muted">Slowcore</span></div>
+          </div>
+          <div class="genre-family">
+            <span class="genre-family-name">Folk/Acoustic</span>
+            <span class="genre-family-count">2,402 plays</span>
+            <div class="genre-family-tags"><span class="genre-tag secondary">Indie Folk</span><span class="genre-tag muted">Singer-Songwriter</span></div>
+          </div>
+          <div class="genre-family">
+            <span class="genre-family-name">Electronic</span>
+            <span class="genre-family-count">1,876 plays</span>
+            <div class="genre-family-tags"><span class="genre-tag muted">Synth-Pop</span><span class="genre-tag muted">Ambient</span><span class="genre-tag muted">Chill</span></div>
+          </div>
+          <div class="genre-family">
+            <span class="genre-family-name">Pop</span>
+            <span class="genre-family-count">1,340 plays</span>
+            <div class="genre-family-tags"><span class="genre-tag muted">Dance Pop</span><span class="genre-tag muted">Electropop</span></div>
+          </div>
+          <div class="genre-family">
+            <span class="genre-family-name">Jazz</span>
+            <span class="genre-family-count">612 plays</span>
+            <div class="genre-family-tags"><span class="genre-tag muted">Jazz</span></div>
+          </div>
+          <div class="genre-family">
+            <span class="genre-family-name">Hip-Hop</span>
+            <span class="genre-family-count">458 plays</span>
+            <div class="genre-family-tags"><span class="genre-tag muted">Hip Hop</span><span class="genre-tag muted">Alternative Hip Hop</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Music DNA — 9 dimensions</h2>
+        <div class="card">
+          <div class="dna-grid-wide" style="display:grid;grid-template-columns:1fr 1fr;gap:16px 40px">
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Energetic</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:72%"></div></div><span class="bar-value" style="width:26px">72</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Loud</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:66%"></div></div><span class="bar-value" style="width:26px">66</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Danceable</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:63%"></div></div><span class="bar-value" style="width:26px">63</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Positive</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:58%"></div></div><span class="bar-value" style="width:26px">58</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Tempo</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:54%"></div></div><span class="bar-value" style="width:26px">54</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Acoustic</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:41%"></div></div><span class="bar-value" style="width:26px">41</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Live</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:19%"></div></div><span class="bar-value" style="width:26px">19</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Instrumental</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:12%"></div></div><span class="bar-value" style="width:26px">12</span></div>
+            <div class="dna-item"><span class="bar-label" style="width:100px;font-size:13px;color:#b3b3b3">Speechy</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:8%"></div></div><span class="bar-value" style="width:26px">8</span></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav class="mobile-tabs" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#101010;border-top:1px solid rgba(255,255,255,0.09);overflow-x:auto;padding:10px 14px;gap:24px;z-index:20">
+    <a href="Overview.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview</a>
+    <a href="Taste.dc.html" class="mobile-tab active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste</a>
+    <a href="Evolution.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution</a>
+    <a href="Listening.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening</a>
+    <a href="Library.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library</a>
+    <a href="Intelligence.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence</a>
+    <a href="Live.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7"/></svg>Live</a>
+  </nav>
+</div>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

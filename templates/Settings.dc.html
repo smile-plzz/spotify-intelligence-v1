@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — Spotify Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar-desktop">
+    <div class="sidebar-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#1ed760"><circle cx="12" cy="12" r="11"/><path d="M7 9.5c3-1 7-1 10 .6M7.5 12.7c2.5-.8 5.5-.8 8 .4M8.3 15.5c1.8-.6 3.8-.6 5.4.2" stroke="#080808" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      <span class="sidebar-logo-text">Spotify Intelligence</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="Overview.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview</a>
+      <a href="Taste.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste</a>
+      <a href="Evolution.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution</a>
+      <a href="Listening.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening</a>
+      <a href="Library.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library</a>
+      <a href="Intelligence.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence</a>
+      <a href="Live.dc.html" class="nav-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.5 5.5a9 9 0 000 13M18.5 5.5a9 9 0 010 13"/></svg>Live</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="Settings.dc.html" class="nav-link active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</a>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg></div>
+        <span class="sidebar-user-name">smile_plzz_</span>
+      </div>
+    </div>
+  </aside>
+
+  <div style="display:flex;flex-direction:column;min-width:0;position:relative">
+    <div class="glow glow-purple"></div>
+    <header class="page-header">
+      <div class="page-header-inner">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">Your connected account and preferences</p>
+      </div>
+    </header>
+
+    <main class="main-content">
+
+      <section>
+        <h2 class="section-title">Spotify account</h2>
+        <div class="account-card" style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:20px 22px;display:flex;align-items:center;gap:16px">
+          <div class="account-avatar" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#b3b3b3" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg></div>
+          <div class="account-info" style="flex:1">
+            <div class="account-name" style="font-size:16px;font-weight:600">smile_plzz_</div>
+            <div class="account-detail" style="font-size:13px;color:#777;margin-top:2px">Connected · Spotify user</div>
+          </div>
+          <span class="account-status" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:999px;background:rgba(30,215,96,0.14);color:#1ed760">Connected</span>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Connected permissions</h2>
+        <div class="permission-list">
+          <div class="permission-item" style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px">
+            <span class="permission-code" style="font-size:12px;color:#777;font-family:monospace">user-top-read</span>
+            <div><span class="permission-scope" style="color:#b3b3b3">Top artists &amp; tracks</span><br><span style="font-size:11px;color:#777">Your top artists and tracks across 4 time ranges.</span></div>
+          </div>
+          <div class="permission-item" style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px">
+            <span class="permission-code" style="font-size:12px;color:#777;font-family:monospace">user-library-read</span>
+            <div><span class="permission-scope" style="color:#b3b3b3">Library</span><br><span style="font-size:11px;color:#777">Saved tracks, albums &amp; playlists.</span></div>
+          </div>
+          <div class="permission-item" style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px">
+            <span class="permission-code" style="font-size:12px;color:#777;font-family:monospace">user-read-recently-played</span>
+            <div><span class="permission-scope" style="color:#b3b3b3">Recent listening</span><br><span style="font-size:11px;color:#777">Last 50 recently played tracks.</span></div>
+          </div>
+          <div class="permission-item" style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px">
+            <span class="permission-code" style="font-size:12px;color:#777;font-family:monospace">user-read-currently-playing</span>
+            <div><span class="permission-scope" style="color:#b3b3b3">Current track</span><br><span style="font-size:11px;color:#777">What's playing now, in the Live view.</span></div>
+          </div>
+          <div class="permission-item" style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:none;font-size:13px">
+            <span class="permission-code" style="font-size:12px;color:#777;font-family:monospace">user-read-playback-state</span>
+            <div><span class="permission-scope" style="color:#b3b3b3">Playback state</span><br><span style="font-size:11px;color:#777">Device &amp; progress for the Live card.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Data &amp; syncing</h2>
+        <div class="settings-section" style="background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:20px 22px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+            <div>
+              <div style="font-size:15px;font-weight:600">Auto-sync</div>
+              <div style="font-size:12px;color:#777;margin-top:2px">Re-ingest recent listening every time you open the dashboard.</div>
+            </div>
+            <button class="btn-action" style="background:rgba(30,215,96,0.15);color:#1ed760;font-weight:700">On</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+            <div>
+              <div style="font-size:15px;font-weight:600">Real-time updates</div>
+              <div style="font-size:12px;color:#777;margin-top:2px">Poll Spotify every 5 seconds for currently-playing in the Live view.</div>
+            </div>
+            <button class="btn-action" style="background:rgba(255,255,255,0.08);color:#fff;font-weight:600">On</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12a9 9 0 11-9-9c2.5 0 4.7.8 6.4 2.1M12 3v9M12 17v3"/></svg>
+            Sync now
+          </button>
+          <button class="btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3v15l5-3 5 3 5-3V5"/><path d="M3 8h18"/></svg>
+            Clear synced data
+          </button>
+          <button class="btn-ghost">Disconnect Spotify</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav class="mobile-tabs" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#101010;border-top:1px solid rgba(255,255,255,0.09);overflow-x:auto;padding:10px 14px;gap:24px;z-index:20">
+    <a href="Overview.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Overview</a>
+    <a href="Taste.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Taste</a>
+    <a href="Evolution.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Evolution</a>
+    <a href="Listening.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Listening</a>
+    <a href="Library.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Library</a>
+    <a href="Intelligence.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>Intelligence</a>
+    <a href="Live.dc.html" class="mobile-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7"/></svg>Live</a>
+  </nav>
+</div>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
