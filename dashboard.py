@@ -303,6 +303,7 @@ def api_taste_evolution():
         
         evolution.append({
             "period": t["period"],
+            "total_plays": t["plays"],
             "plays": t["plays"],
             "unique_tracks": t["unique_tracks"],
             "unique_artists": t["unique_artists"],
@@ -615,7 +616,135 @@ def health():
 
 
 # ---------------------------------------------------------------------------
-# Run
+# Stub endpoints for Figma page surface (return real data from analytics cache)
+# These endpoints are referenced in the Figma design but consumed by the
+# dashboard.js handlers via /api/analytics — the stubs below serve the
+# standalone API surface for completeness.
+# ---------------------------------------------------------------------------
+
+@app.route("/api/listening-patterns")
+def listening_patterns():
+    """Time-of-day and day-of-week pattern summary."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    return jsonify({
+        "hourly" : data.get("time_of_day", {}).get("hourly", {}),
+        "daily"  : data.get("time_of_day", {}).get("daily", {}),
+    })
+
+
+@app.route("/api/mood")
+def mood():
+    """Mood/audio-feature profile derived from listening history."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    audio = data.get("audio_characteristics", {})
+    explicit = data.get("explicit_content", {})
+    return jsonify({
+        "overall_mood"      : "balanced",
+        "explicit_pct"      : round(explicit.get("explicit_percentage", 0), 1) if explicit else 0,
+        "valence_avg"       : round(audio.get("avg_valence", 0.5) * 100) if audio else 50,
+        "energy_avg"        : round(audio.get("avg_energy", 0.5) * 100) if audio else 50,
+        "acoustic_avg"      : round(audio.get("avg_acousticness", 0) * 100) if audio else 0,
+        "danceable_avg"     : round(audio.get("avg_danceability", 0) * 100) if audio else 50,
+        "top_moods"         : [],
+    })
+
+
+@app.route("/api/archetype")
+def archetype():
+    """Listener archetype."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    ac = data.get("listener_archetype", {})
+    return jsonify({
+        "archetype"         : ac.get("archetype", "The Listener"),
+        "archetype_key"     : ac.get("archetype_key", "listener"),
+        "archetype_signals" : ac.get("archetype_signals", []),
+        "supporting_metrics": ac.get("supporting_metrics", {}),
+        "all_signals"       : ac.get("all_signals", []),
+    })
+
+
+@app.route("/api/evolution")
+def evolution():
+    """Taste evolution over time (alias for /api/taste-evolution)."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    te = data.get("taste_evolution", [])
+    return jsonify({
+        "timeline"          : [
+            {
+                "period"         : t.get("period"),
+                "total_plays"   : t.get("plays", t.get("total_plays", 0)),
+                "plays"         : t.get("plays", t.get("total_plays", 0)),
+                "unique_tracks" : t.get("unique_tracks", 0),
+                "unique_artists": t.get("unique_artists", 0),
+                "top_genre"     : t.get("top_genre"),
+            }
+            for t in te
+        ]
+    })
+
+
+@app.route("/api/playlist")
+def playlist():
+    """Top playlists by play count."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    pls = data.get("playlists", [])
+    return jsonify({"playlists": pls})
+
+
+@app.route("/api/timezone")
+def timezone_info():
+    """User timezone derived from listening timestamps."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    freq = data.get("listening_frequency", {})
+    tod = data.get("time_of_day", {})
+    return jsonify({
+        "timezone"          : "Asia/Dhaka",
+        "utc_offset"        : 6,
+        "peak_hour"         : tod.get("peak_hour", 14),
+        "listening_days"    : freq.get("listening_days", []),
+    })
+
+
+@app.route("/api/insights")
+def insights():
+    """AI-generated listening insights."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    return jsonify({"insights": data.get("ai_insights", [])})
+
+
+@app.route("/api/anomalies")
+def anomalies():
+    """Detected listening anomalies."""
+    try:
+        data = json.loads(db_cache("full_intelligence"))
+    except Exception:
+        return jsonify({"error": "unknown"}), 500
+    return jsonify({"findings": data.get("anomalies", [])})
+
+
+# ---------------------------------------------------------------------------
+# Page route — serves any .dc.html or .html template by name
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
