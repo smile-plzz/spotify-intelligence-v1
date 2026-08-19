@@ -48,6 +48,25 @@ def get_db():
     return db
 
 
+def db_cache(key: str) -> str:
+    """Return the raw JSON string cached under `key` in analytics_cache.
+
+    Used by stub endpoints to re-serve pre-computed intelligence without
+    re-querying the DB.  Returns an empty string when the key is missing.
+    """
+    try:
+        db = get_db()
+        row = db.execute(
+            "SELECT value FROM analytics_cache WHERE key=?", (key,)
+        ).fetchone()
+        db.close()
+        if row:
+            return row["value"]
+    except Exception:
+        pass
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # API Endpoints
 # ---------------------------------------------------------------------------
@@ -630,8 +649,11 @@ def listening_patterns():
     except Exception:
         return jsonify({"error": "unknown"}), 500
     return jsonify({
-        "hourly" : data.get("time_of_day", {}).get("hourly", {}),
-        "daily"  : data.get("time_of_day", {}).get("daily", {}),
+        "hourly": data.get("time_of_day", {}).get("hourly_breakdown", {}),
+        "daily": data.get("time_of_day", {}).get("daily_breakdown", {}),
+        "time_of_day": data.get("time_of_day", {}).get("time_of_day", {}),
+        "peak_hour": data.get("time_of_day", {}).get("peak_hour"),
+        "peak_day": data.get("time_of_day", {}).get("peak_day"),
     })
 
 
@@ -643,14 +665,15 @@ def mood():
     except Exception:
         return jsonify({"error": "unknown"}), 500
     audio = data.get("audio_characteristics", {})
+    audio_inner = audio.get("audio_characteristics", {}) if isinstance(audio, dict) else {}
     explicit = data.get("explicit_content", {})
     return jsonify({
         "overall_mood"      : "balanced",
         "explicit_pct"      : round(explicit.get("explicit_percentage", 0), 1) if explicit else 0,
-        "valence_avg"       : round(audio.get("avg_valence", 0.5) * 100) if audio else 50,
-        "energy_avg"        : round(audio.get("avg_energy", 0.5) * 100) if audio else 50,
-        "acoustic_avg"      : round(audio.get("avg_acousticness", 0) * 100) if audio else 0,
-        "danceable_avg"     : round(audio.get("avg_danceability", 0) * 100) if audio else 50,
+        "valence_avg"       : round(audio_inner.get("avg_valence", 0.5) * 100) if audio_inner else 50,
+        "energy_avg"        : round(audio_inner.get("avg_energy", 0.5) * 100) if audio_inner else 50,
+        "acoustic_avg"      : round(audio_inner.get("avg_acousticness", 0) * 100) if audio_inner else 0,
+        "danceable_avg"     : round(audio_inner.get("avg_danceability", 0.5) * 100) if audio_inner else 50,
         "top_moods"         : [],
     })
 
@@ -668,7 +691,6 @@ def archetype():
         "archetype_key"     : ac.get("archetype_key", "listener"),
         "archetype_signals" : ac.get("archetype_signals", []),
         "supporting_metrics": ac.get("supporting_metrics", {}),
-        "all_signals"       : ac.get("all_signals", []),
     })
 
 
@@ -679,9 +701,10 @@ def evolution():
         data = json.loads(db_cache("full_intelligence"))
     except Exception:
         return jsonify({"error": "unknown"}), 500
-    te = data.get("taste_evolution", [])
+    te = data.get("taste_evolution", {})
+    timeline = te.get("timeline", []) if isinstance(te, dict) else []
     return jsonify({
-        "timeline"          : [
+        "timeline": [
             {
                 "period"         : t.get("period"),
                 "total_plays"   : t.get("plays", t.get("total_plays", 0)),
@@ -690,7 +713,7 @@ def evolution():
                 "unique_artists": t.get("unique_artists", 0),
                 "top_genre"     : t.get("top_genre"),
             }
-            for t in te
+            for t in timeline
         ]
     })
 
@@ -703,7 +726,16 @@ def playlist():
     except Exception:
         return jsonify({"error": "unknown"}), 500
     pls = data.get("playlists", [])
-    return jsonify({"playlists": pls})
+    # Strip sqlite3.Row wrappers — convert each to a plain dict for JSON
+    clean = []
+    for p in pls:
+        if hasattr(p, "keys"):
+            clean.append(dict(p))
+        elif isinstance(p, dict):
+            clean.append(p)
+        else:
+            clean.append(str(p))
+    return jsonify({"playlists": clean})
 
 
 @app.route("/api/timezone")
@@ -719,7 +751,7 @@ def timezone_info():
         "timezone"          : "Asia/Dhaka",
         "utc_offset"        : 6,
         "peak_hour"         : tod.get("peak_hour", 14),
-        "listening_days"    : freq.get("listening_days", []),
+        "listening_days"    : freq.get("active_days", []) or freq.get("listening_days", []),
     })
 
 
@@ -730,7 +762,7 @@ def insights():
         data = json.loads(db_cache("full_intelligence"))
     except Exception:
         return jsonify({"error": "unknown"}), 500
-    return jsonify({"insights": data.get("ai_insights", [])})
+    return jsonify({"insights": data.get("findings", [])})
 
 
 @app.route("/api/anomalies")
@@ -740,7 +772,8 @@ def anomalies():
         data = json.loads(db_cache("full_intelligence"))
     except Exception:
         return jsonify({"error": "unknown"}), 500
-    return jsonify({"findings": data.get("anomalies", [])})
+    anom = data.get("anomalies", {})
+    return jsonify({"findings": anom.get("findings", []) if isinstance(anom, dict) else []})
 
 
 # ---------------------------------------------------------------------------
