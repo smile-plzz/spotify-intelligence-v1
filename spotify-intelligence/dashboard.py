@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 
 # ---------------------------------------------------------------------------
@@ -578,6 +578,26 @@ def normalize_genre(genre: str) -> str:
         if key in g or g in key:
             return family
     return g.split("-")[0].split()[0].title()
+
+
+# ---------------------------------------------------------------------------
+# Page route — serves any .dc.html or .html template by name
+# ---------------------------------------------------------------------------
+
+@app.route("/<page>")
+def page(page):
+    # Map bare names to .html templates, also serve static files
+    if not page.endswith(".html"):
+        page = page + ".html"
+    if page.startswith("..") or "/" in page:
+        return "Not found", 404
+    tpath = TEMPLATE_DIR / page
+    if tpath.exists():
+        return render_template(page)
+    spath = STATIC_DIR / page
+    if spath.exists():
+        return send_from_directory(str(STATIC_DIR), page)
+    return "Not found", 404
 
 
 # ---------------------------------------------------------------------------
