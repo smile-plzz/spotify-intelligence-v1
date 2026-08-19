@@ -720,22 +720,27 @@ def evolution():
 
 @app.route("/api/playlist")
 def playlist():
-    """Top playlists by play count."""
-    try:
-        data = json.loads(db_cache("full_intelligence"))
-    except Exception:
-        return jsonify({"error": "unknown"}), 500
-    pls = data.get("playlists", [])
-    # Strip sqlite3.Row wrappers — convert each to a plain dict for JSON
-    clean = []
-    for p in pls:
-        if hasattr(p, "keys"):
-            clean.append(dict(p))
-        elif isinstance(p, dict):
-            clean.append(p)
-        else:
-            clean.append(str(p))
-    return jsonify({"playlists": clean})
+    """Top playlists by play count — served from the warehouse DB."""
+    db = get_db()
+
+    pls = db.execute(
+        "SELECT id, name, description, tracks_total, public, collaborative FROM playlists ORDER BY name LIMIT 50"
+    ).fetchall()
+
+    db.close()
+    return jsonify({
+        "playlists": [
+            {
+                "id": p["id"],
+                "name": p["name"],
+                "description": p["description"],
+                "tracks_total": p["tracks_total"],
+                "public": bool(p["public"]),
+                "collaborative": bool(p["collaborative"]),
+            }
+            for p in pls
+        ]
+    })
 
 
 @app.route("/api/timezone")
