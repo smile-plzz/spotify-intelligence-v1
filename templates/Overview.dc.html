@@ -76,7 +76,7 @@
         <div style="flex:1;min-width:180px">
           <p class="now-playing-badge">Now playing</p>
           <div class="now-playing-track-name" style="font-weight:700;font-size:19px">Midnight Static</div>
-          <div style="font-size:14px;color:#b3b3b3">Cassette Ghosts — Analog Dreams</div>
+          <div class="now-playing-artist" style="font-size:14px;color:#b3b3b3">Cassette Ghosts — Analog Dreams</div>
           <div class="now-playing-progress" style="margin-top:12px;height:4px;border-radius:999px;background:rgba(255,255,255,0.1);position:relative;max-width:340px">
             <div class="now-playing-progress-fill" style="position:absolute;left:0;top:0;bottom:0;width:38%;background:#1ed760;border-radius:999px"></div>
           </div>
@@ -123,7 +123,7 @@
             <h2>Top artists</h2>
             <a href="Taste.dc.html" class="section-link">View all</a>
           </div>
-          <div class="top-list">
+          <div class="top-list top-artists-list">
             <div class="top-list-item">
               <div class="top-list-row"><span class="top-list-name">Cassette Ghosts</span><span class="top-list-count">612 plays</span></div>
               <div class="top-list-bar"><div class="top-list-bar-fill" style="height:100%;width:92%"></div></div>
@@ -151,7 +151,7 @@
             <h2>Top tracks</h2>
             <a href="Taste.dc.html" class="section-link">View all</a>
           </div>
-          <div class="top-list">
+          <div class="top-list top-tracks-list">
             <div class="top-list-item">
               <div class="top-list-row"><span class="top-list-name">Midnight Static</span><span class="top-list-count">203 plays</span></div>
               <div class="top-list-bar"><div class="top-list-bar-fill top-list-bar-fill-cyan" style="height:100%;width:96%"></div></div>
@@ -191,18 +191,60 @@
         </div>
       </section>
 
+      <section class="genre-families-section" style="display:none">
+        <h2 class="section-title">Genre families</h2>
+        <div class="genre-families"></div>
+      </section>
+
       <section class="two-col">
         <div class="card">
           <div style="font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Listener archetype</div>
           <div class="archetype-name" style="font-weight:700;font-size:22px;margin-bottom:8px">The Steady Explorer</div>
-          <div style="font-size:14px;color:#b3b3b3;line-height:1.6">You return to a stable core of favorites but consistently work new artists into rotation — high loyalty, moderate discovery.</div>
+          <div class="archetype-description" style="font-size:14px;color:#b3b3b3;line-height:1.6">You return to a stable core of favorites but consistently work new artists into rotation — high loyalty, moderate discovery.</div>
         </div>
         <div class="card">
           <div style="font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Music DNA <a href="Taste.dc.html" class="top-list-link" style="font-size:11px">full profile →</a></div>
-          <div class="dna-grid" style="display:flex;flex-direction:column;gap:10px">
-            <div class="bar-row"><span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Energetic</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:72%"></div></div><span class="bar-value" style="width:24px">72</span></div>
-            <div class="bar-row"><span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Acoustic</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:41%"></div></div><span class="bar-value" style="width:24px">41</span></div>
-            <div class="bar-row"><span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Danceable</span><div class="bar-track"><div class="bar-fill" style="height:100%;width:63%"></div></div><span class="bar-value" style="width:24px">63</span></div>
+                    <div class="dna-grid" style="display:flex;flex-direction:column;gap:10px">
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Energetic</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:72%;background:var(--accent)"></div></div>
+              <span class="bar-value" style="width:24px">72</span>
+            </div>
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Acoustic</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:41%;background:#22d3ee"></div></div>
+              <span class="bar-value" style="width:24px">41</span>
+            </div>
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Danceable</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:63%;background:var(--accent)"></div></div>
+              <span class="bar-value" style="width:24px">63</span>
+            </div>
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Positive</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:50%;background:#f59e0b"></div></div>
+              <span class="bar-value" style="width:24px">50</span>
+            </div>
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Tempo</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:50%;background:var(--accent)"></div></div>
+              <span class="bar-value" style="width:24px">50</span>
+            </div>
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Loud</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:50%;background:#ef4444"></div></div>
+              <span class="bar-value" style="width:24px">50</span>
+            </div>
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Live</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:50%;background:#22d3ee"></div></div>
+              <span class="bar-value" style="width:24px">50</span>
+            </div>
+            <div class="dna-item">
+              <span class="bar-label" style="width:90px;font-size:12px;color:#b3b3b3">Instrumental</span>
+              <div class="bar-track"><div class="bar-fill" style="height:100%;width:50%;background:#a78bfa"></div></div>
+              <span class="bar-value" style="width:24px">50</span>
+            </div>
           </div>
         </div>
       </section>
