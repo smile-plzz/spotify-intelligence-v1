@@ -67,6 +67,51 @@ def db_cache(key: str) -> str:
     return ""
 
 
+HERMES_PATH = os.getenv(
+    "HERMES_AGENT_PATH", r"C:\Users\ismai\AppData\Local\hermes\hermes-agent"
+)
+
+
+def spotify_client():
+    """Return a live SpotifyClient, or None when one cannot be built.
+
+    The client lives in the hermes agent tree rather than this repo, so it is
+    absent on any machine but the one that ingests.  Callers treat None as
+    "not connected" rather than as a failure.
+    """
+    try:
+        if HERMES_PATH not in sys.path:
+            sys.path.insert(0, HERMES_PATH)
+        from plugins.spotify.client import SpotifyClient
+
+        return SpotifyClient()
+    except Exception:
+        return None
+
+
+def _plays_by(breakdown: Dict[str, Any]) -> Dict[str, int]:
+    """Flatten an analytics breakdown to `{bucket: plays}`.
+
+    analytics.py returns `{"14": {"plays": 6, "unique_tracks": 4}}`; the
+    dashboard charts want a plain count per bucket.
+    """
+    flat = {}
+    for bucket, value in (breakdown or {}).items():
+        if isinstance(value, dict):
+            flat[bucket] = value.get("plays", 0)
+        else:
+            flat[bucket] = value or 0
+    return flat
+
+
+def _top_genre_of(period: Dict[str, Any]) -> Any:
+    """Name of the most-played genre in a taste-evolution period."""
+    genres = period.get("top_genres") or []
+    if genres and isinstance(genres[0], dict):
+        return genres[0].get("genre")
+    return period.get("top_genre")
+
+
 # ---------------------------------------------------------------------------
 # API Endpoints
 # ---------------------------------------------------------------------------
@@ -98,10 +143,8 @@ def api_summary():
     
     # Currently playing
     try:
-        sys.path.insert(0, r"C:\Users\ismai\AppData\Local\hermes\hermes-agent")
-        from plugins.spotify.client import SpotifyClient
-        client = SpotifyClient()
-        cp = client.get_currently_playing()
+        client = spotify_client()
+        cp = client.get_currently_playing() if client else None
         currently_playing = None
         if cp and not cp.get("empty"):
             track = cp.get("track", {})
@@ -541,12 +584,18 @@ def api_analytics():
 @app.route("/api/currently-playing")
 def api_currently_playing():
     """Real-time currently playing track."""
+    client = spotify_client()
+    if client is None:
+        # Not an error: this machine simply has no Spotify client available.
+        return jsonify({
+            "playing": False,
+            "connected": False,
+            "message": "Spotify client unavailable on this host",
+        })
+
     try:
-        sys.path.insert(0, r"C:\Users\ismai\AppData\Local\hermes\hermes-agent")
-        from plugins.spotify.client import SpotifyClient
-        client = SpotifyClient()
         cp = client.get_currently_playing()
-        
+
         if cp and cp.get("empty"):
             return jsonify({"playing": False, "message": cp.get("message", "Nothing playing")})
         
@@ -591,7 +640,7 @@ def api_currently_playing():
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
     except Exception as e:
-        return jsonify({"playing": False, "error": str(e)}), 500
+        return jsonify({"playing": False, "connected": True, "error": str(e)}), 502
 
 
 # ---------------------------------------------------------------------------
@@ -671,6 +720,85 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/api/recent")
+def api_recent():
+    """Most recent listening events, newest first."""
+    try:
+        limit = min(max(int(request.args.get("limit", 20)), 1), 100)
+    except (TypeError, ValueError):
+        limit = 20
+
+    db = get_db()
+    rows = db.execute(
+        """SELECT le.played_at, t.name as track_name, t.artist_name, t.album_name
+           FROM listening_events le
+           JOIN tracks t ON t.id = le.track_id
+           ORDER BY le.played_at DESC
+           LIMIT ?""",
+        (limit,),
+    ).fetchall()
+    db.close()
+
+    plays = []
+    for position, r in enumerate(rows):
+        try:
+            played_at = datetime.fromtimestamp(r["played_at"], tz=timezone.utc).isoformat()
+        except (TypeError, ValueError, OSError):
+            played_at = None
+        plays.append({
+            "track": r["track_name"],
+            "artist": r["artist_name"],
+            "album": r["album_name"],
+            "played_at": played_at,
+            "tracks_ago": position,
+        })
+
+    return jsonify({"plays": plays, "count": len(plays)})
+
+
+@app.route("/api/status")
+def api_status():
+    """Warehouse and sync status for the Settings page."""
+    db = get_db()
+
+    def scalar(sql, default=0):
+        try:
+            return db.execute(sql).fetchone()[0]
+        except Exception:
+            return default
+
+    counts = {
+        "plays": scalar("SELECT COUNT(*) FROM listening_events"),
+        "artists": scalar("SELECT COUNT(DISTINCT artist_id) FROM listening_events"),
+        "tracks": scalar("SELECT COUNT(DISTINCT track_id) FROM listening_events"),
+        "saved_tracks": scalar("SELECT COUNT(*) FROM saved_tracks"),
+        "saved_albums": scalar("SELECT COUNT(*) FROM saved_albums"),
+        "playlists": scalar("SELECT COUNT(*) FROM playlists"),
+    }
+    last_play = scalar("SELECT MAX(played_at) FROM listening_events", None)
+    computed_at = scalar(
+        "SELECT computed_at FROM analytics_cache WHERE key='full_intelligence'", None
+    )
+    db.close()
+
+    def iso(ts):
+        if not ts:
+            return None
+        try:
+            return datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat()
+        except (TypeError, ValueError, OSError):
+            return None
+
+    db_file = Path(str(DB_PATH))
+    return jsonify({
+        "counts": counts,
+        "last_play": iso(last_play),
+        "analytics_computed_at": iso(computed_at),
+        "analytics_cached": computed_at is not None,
+        "database_bytes": db_file.stat().st_size if db_file.exists() else 0,
+    })
+
+
 @app.route("/health")
 def health():
     return jsonify({"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()})
@@ -690,12 +818,17 @@ def listening_patterns():
         data = json.loads(db_cache("full_intelligence"))
     except Exception:
         return jsonify({"error": "unknown"}), 500
+    tod = data.get("time_of_day", {})
+    hourly = _plays_by(tod.get("hourly_breakdown", {}))
+    for hour in range(24):
+        hourly.setdefault(f"{hour:02d}", 0)
+
     return jsonify({
-        "hourly": data.get("time_of_day", {}).get("hourly_breakdown", {}),
-        "daily": data.get("time_of_day", {}).get("daily_breakdown", {}),
-        "time_of_day": data.get("time_of_day", {}).get("time_of_day", {}),
-        "peak_hour": data.get("time_of_day", {}).get("peak_hour"),
-        "peak_day": data.get("time_of_day", {}).get("peak_day"),
+        "hourly": {k: hourly[k] for k in sorted(hourly)},
+        "daily": _plays_by(tod.get("daily_breakdown", {})),
+        "time_of_day": _plays_by(tod.get("time_of_day", {})),
+        "peak_hour": tod.get("peak_hour"),
+        "peak_day": tod.get("peak_day"),
     })
 
 
@@ -709,14 +842,36 @@ def mood():
     audio = data.get("audio_characteristics", {})
     audio_inner = audio.get("audio_characteristics", {}) if isinstance(audio, dict) else {}
     explicit = data.get("explicit_content", {})
+
+    def pct(name, default=0.5):
+        """analytics.py emits bare feature names (`valence`), not `avg_valence`."""
+        value = audio_inner.get(name)
+        return round((default if value is None else value) * 100)
+
+    valence, energy = pct("valence"), pct("energy")
+    if valence >= 60 and energy >= 60:
+        overall = "upbeat"
+    elif valence <= 40 and energy <= 40:
+        overall = "melancholic"
+    elif energy >= 65:
+        overall = "energetic"
+    elif valence <= 40:
+        overall = "introspective"
+    else:
+        overall = "balanced"
+
     return jsonify({
-        "overall_mood"      : "balanced",
+        "overall_mood"      : overall,
         "explicit_pct"      : round(explicit.get("explicit_percentage", 0), 1) if explicit else 0,
-        "valence_avg"       : round(audio_inner.get("avg_valence", 0.5) * 100) if audio_inner else 50,
-        "energy_avg"        : round(audio_inner.get("avg_energy", 0.5) * 100) if audio_inner else 50,
-        "acoustic_avg"      : round(audio_inner.get("avg_acousticness", 0) * 100) if audio_inner else 0,
-        "danceable_avg"     : round(audio_inner.get("avg_danceability", 0.5) * 100) if audio_inner else 50,
-        "top_moods"         : [],
+        "valence_avg"       : valence,
+        "energy_avg"        : energy,
+        "acoustic_avg"      : pct("acousticness", 0.0),
+        "danceable_avg"     : pct("danceability"),
+        "top_moods"         : [
+            label
+            for label in (audio.get("interpretation", {}) or {}).values()
+            if label
+        ],
     })
 
 
@@ -753,10 +908,12 @@ def evolution():
                 "plays"         : t.get("plays", t.get("total_plays", 0)),
                 "unique_tracks" : t.get("unique_tracks", 0),
                 "unique_artists": t.get("unique_artists", 0),
-                "top_genre"     : t.get("top_genre"),
+                "top_genre"     : _top_genre_of(t),
+                "genre_diversity": t.get("genre_diversity"),
             }
             for t in timeline
-        ]
+        ],
+        "shifts": te.get("shifts", []) if isinstance(te, dict) else [],
     })
 
 
@@ -798,18 +955,87 @@ def timezone_info():
         "timezone"          : "Asia/Dhaka",
         "utc_offset"        : 6,
         "peak_hour"         : tod.get("peak_hour", 14),
-        "listening_days"    : freq.get("active_days", []) or freq.get("listening_days", []),
+        # analytics.py reports active_days as a count; the day names live in
+        # the time-of-day breakdown.
+        "active_days"       : freq.get("active_days", 0),
+        "listening_days"    : sorted(_plays_by(tod.get("daily_breakdown", {}))),
+        "plays_per_day"     : freq.get("plays_per_day", 0),
     })
 
 
 @app.route("/api/insights")
 def insights():
-    """AI-generated listening insights."""
+    """Listening insights derived from the cached analytics.
+
+    There is no top-level `findings` key in the analytics output — reading one
+    made this endpoint return an empty list on every request.  The sentences
+    below mirror the client-side `deriveInsights` rules so both surfaces agree.
+    """
     try:
         data = json.loads(db_cache("full_intelligence"))
     except Exception:
         return jsonify({"error": "unknown"}), 500
-    return jsonify({"insights": data.get("findings", [])})
+
+    found = []
+
+    diversity = data.get("genre_diversity") or {}
+    if diversity.get("genre_count"):
+        found.append(
+            f"You span {diversity['genre_count']} genres, with a diversity score of "
+            f"{diversity.get('diversity_score', 0)}%. "
+            f"Your most-played is {diversity['top_genres'][0]['genre']}."
+            if diversity.get("top_genres")
+            else f"You span {diversity['genre_count']} genres."
+        )
+
+    discovery = data.get("discovery_rate") or {}
+    if discovery.get("discovery_rate") is not None:
+        rate = discovery["discovery_rate"]
+        found.append(
+            f"Your discovery rate is {rate}% — "
+            + (
+                "most of what you play is new to your history."
+                if rate >= 50
+                else f"you return to familiar tracks {discovery.get('comfort_score', 100 - rate)}% of the time."
+            )
+        )
+
+    archetype = data.get("listener_archetype") or {}
+    if archetype.get("archetype"):
+        signals = "; ".join(
+            s.get("description", "") for s in archetype.get("archetype_signals", []) if s
+        )
+        found.append(
+            f"Your archetype is \"{archetype['archetype']}\"" + (f" — {signals}." if signals else ".")
+        )
+
+    mainstream = data.get("mainstream_vs_obscure") or {}
+    if mainstream.get("tendency"):
+        found.append(
+            f"Your taste leans {mainstream['tendency']} — the artists you play average "
+            f"{mainstream.get('average_artist_popularity', 0)} on Spotify's popularity scale."
+        )
+
+    explicit = data.get("explicit_content") or {}
+    if explicit.get("explicit_percentage"):
+        found.append(
+            f"{explicit['explicit_percentage']}% of your plays are explicit "
+            f"({explicit.get('explicit_tendency', 'moderate')} by our banding)."
+        )
+
+    repeat = data.get("repeat_rate") or {}
+    if repeat.get("repeat_rate_tracks") is not None:
+        found.append(
+            f"You replay {repeat['repeat_rate_tracks']}% of your tracks and "
+            f"{repeat.get('repeat_rate_artists', 0)}% of your artists."
+        )
+
+    if not found:
+        found.append(
+            "Your listening patterns are still forming. Insights will appear as more data accumulates."
+        )
+
+    return jsonify({"insights": found})
 
 
 @app.route("/api/anomalies")
