@@ -29,7 +29,8 @@ REQUIRED_HOOKS = {
     ],
     "Listening.dc.html": [
         "music-clock", "clock-bar", "day-bars", "day-bar", "sessions-table",
-        "music-clock-caption",
+        "music-clock-caption", "weekend-stats", "weekend-stat-row",
+        "weekend-stat-value", "weekend-bar-fill",
     ],
     "Library.dc.html": [
         "tab-btn", "lib-tracks", "lib-albums", "lib-playlists",

@@ -267,36 +267,54 @@
     },
 
     renderMusicDNA(analytics) {
-      const dna = analytics.music_dna?.dna || {};
-      const grid = document.querySelector('.dna-grid');
+      // .dna-grid on Overview, .dna-grid-wide on Taste — querying only the
+      // first left the Taste page on its mock bars.
+      const grid = document.querySelector('.dna-grid, .dna-grid-wide');
       if (!grid) return;
 
-      // Map API dimensions to design-system labels
+      const dna = analytics.music_dna?.dna || {};
+      const audio = analytics.audio_characteristics?.audio_characteristics || {};
+
+      const scale = (value, min, max) =>
+        value === undefined || value === null
+          ? null
+          : Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
+
+      // music_dna carries the vs-pairs only; the raw features (danceability,
+      // tempo, loudness, speechiness, instrumentalness) live in
+      // audio_characteristics. Reading them off music_dna pinned five of the
+      // eight bars to the 50 default.
       const dims = [
-        { key: 'high_energy_vs_low_energy', label: 'Energetic', val: dna['high_energy_vs_low_energy']?.high_energy, max: 100 },
-        { key: 'acoustic_vs_electronic', label: 'Acoustic', val: dna['acoustic_vs_electronic']?.acoustic, max: 100 },
-        { key: 'danceability', label: 'Danceable', val: dna['danceability'], max: 100 },
-        { key: 'positive_vs_melancholic', label: 'Positive', val: dna['positive_vs_melancholic']?.positive, max: 100 },
-        { key: 'tempo', label: 'Tempo', val: dna['tempo'], max: 100 },
-        { key: 'loudness', label: 'Loud', val: dna['loudness'], max: 100 },
-        { key: 'live', label: 'Live', val: dna['live'], max: 100 },
-        { key: 'instrumental', label: 'Instrumental', val: dna['instrumental'], max: 100 },
+        { key: 'high_energy_vs_low_energy', label: 'Energetic',
+          val: dna.high_energy_vs_low_energy?.high_energy ?? scale(audio.energy, 0, 1) },
+        { key: 'acoustic_vs_electronic', label: 'Acoustic',
+          val: dna.acoustic_vs_electronic?.acoustic ?? scale(audio.acousticness, 0, 1) },
+        { key: 'danceability', label: 'Danceable', val: scale(audio.danceability, 0, 1) },
+        { key: 'positive_vs_melancholic', label: 'Positive',
+          val: dna.positive_vs_melancholic?.positive ?? scale(audio.valence, 0, 1) },
+        { key: 'tempo', label: 'Tempo', val: scale(audio.tempo, 60, 180) },
+        { key: 'loudness', label: 'Loud', val: scale(audio.loudness, -60, 0) },
+        { key: 'speechiness', label: 'Speechy', val: scale(audio.speechiness, 0, 1) },
+        { key: 'instrumental', label: 'Instrumental', val: scale(audio.instrumentalness, 0, 1) },
       ];
 
       const items = grid.querySelectorAll('.dna-item');
-      dims.forEach((dim, i) => {
-        if (i >= items.length) return;
-        const item = items[i];
+      items.forEach((item, i) => {
+        const dim = dims[i];
+        if (!dim) { item.style.display = 'none'; return; }
+        item.style.display = '';
+
         const barFill = item.querySelector('.bar-fill');
         const valEl = item.querySelector('.bar-value');
         const labelEl = item.querySelector('.bar-label');
+        const pct = Math.round(Math.min(100, Math.max(0, dim.val ?? 50)));
+
         if (labelEl) labelEl.textContent = dim.label;
         if (barFill) {
-          const pct = Math.min(100, Math.max(0, dim.val ?? 50));
           barFill.style.width = pct + '%';
           barFill.style.background = this.dnaColor(dim.key);
         }
-        if (valEl) valEl.textContent = Math.round(pct);
+        if (valEl) valEl.textContent = pct;
       });
     },
 
@@ -308,7 +326,7 @@
         'positive_vs_melancholic': '#f59e0b',
         'tempo': 'var(--accent)',
         'loudness': '#ef4444',
-        'live': '#22d3ee',
+        'speechiness': '#22d3ee',
         'instrumental': '#a78bfa',
       };
       return colors[key] || 'var(--accent)';
@@ -454,6 +472,7 @@
         ]);
         this.renderMusicClock(timeOfDay);
         this.renderWeekBars(timeOfDay);
+        this.renderWeekendSplit(timeOfDay);
         this.renderSessions(sessions);
       } catch (e) {
         console.warn('Listening load error:', e);
@@ -502,6 +521,37 @@
       bars.forEach((bar, i) => {
         const name = dayNames[i];
         bar.style.height = (days[name] ? ((days[name] / max) * 100) : 5) + '%';
+      });
+    },
+
+    renderWeekendSplit(data) {
+      const rows = document.querySelectorAll('.weekend-stats .weekend-stat-row');
+      if (!rows.length) return;
+
+      const daily = data.daily || {};
+      const sumOf = (days) => days.reduce((total, d) => total + (daily[d] || 0), 0);
+      const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      const weekend = ['Saturday', 'Sunday'];
+
+      const weekdayAvg = sumOf(weekdays) / weekdays.length;
+      const weekendAvg = sumOf(weekend) / weekend.length;
+      const peak = Math.max(weekdayAvg, weekendAvg, 1);
+      const ratio = weekdayAvg > 0 ? Math.round((weekendAvg / weekdayAvg) * 100) : 0;
+
+      const round = (n) => (n >= 10 ? Math.round(n) : Math.round(n * 10) / 10);
+      const values = [
+        `${round(weekdayAvg).toLocaleString()} plays/day`,
+        `${round(weekendAvg).toLocaleString()} plays/day`,
+        `${ratio}% of weekday`,
+      ];
+      rows.forEach((row, i) => {
+        const valueEl = row.querySelector('.weekend-stat-value');
+        if (valueEl && values[i] !== undefined) valueEl.textContent = values[i];
+      });
+
+      const fills = document.querySelectorAll('.weekend-stats .weekend-bar-fill');
+      [weekdayAvg, weekendAvg].forEach((avg, i) => {
+        if (fills[i]) fills[i].style.width = Math.round((avg / peak) * 100) + '%';
       });
     },
 
