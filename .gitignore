@@ -20,3 +20,5 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+# Test artifacts
+.pytest_cache/
