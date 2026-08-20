@@ -104,7 +104,9 @@ FULL_INTELLIGENCE = {
     "listener_archetype": {
         "archetype": "The Explorer",
         "archetype_key": "explorer",
-        "archetype_signals": ["high artist variety"],
+        "archetype_signals": [
+            {"signal": "artist_variety", "description": "You spread plays across many artists."}
+        ],
         "supporting_metrics": {"unique_artists": 5},
     },
     "audio_characteristics": {
