@@ -15,8 +15,8 @@
     init() {
       this.attachNav();
       this.attachRefreshButtons();
-      this.attachLibraryTabs();
-      this.attachAuthCallbackSteps();
+      if (this.attachLibraryTabs) this.attachLibraryTabs();
+      if (this.attachAuthCallbackSteps) this.attachAuthCallbackSteps();
       this.refreshAll();
       this.startLivePolling();
     },
