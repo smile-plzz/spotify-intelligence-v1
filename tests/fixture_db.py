@@ -8,13 +8,18 @@ its test fails here first.
 
 from __future__ import annotations
 
-import json
 import sqlite3
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 SCHEMA = """
 CREATE TABLE artists (
     id TEXT PRIMARY KEY,
     name TEXT,
+    genres TEXT,
     popularity INTEGER
 );
 CREATE TABLE artist_genres (
@@ -37,7 +42,21 @@ CREATE TABLE tracks (
     album_id TEXT,
     album_name TEXT,
     duration_ms INTEGER,
-    popularity INTEGER
+    popularity INTEGER,
+    explicit INTEGER,
+    disc_number INTEGER,
+    track_number INTEGER
+);
+CREATE TABLE audio_features (
+    track_id TEXT PRIMARY KEY,
+    danceability REAL,
+    energy REAL,
+    valence REAL,
+    acousticness REAL,
+    instrumentalness REAL,
+    speechiness REAL,
+    loudness REAL,
+    tempo REAL
 );
 CREATE TABLE listening_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,102 +94,63 @@ CREATE TABLE top_tracks_snapshots (
 );
 CREATE TABLE analytics_cache (
     key TEXT PRIMARY KEY,
-    value TEXT
+    value TEXT,
+    computed_at REAL
 );
 """
 
-# (artist_id, name, popularity, genres, play_count)
+# (artist_id, name, popularity, genres)
 ARTISTS = [
-    ("ar1", "Bob Dylan", 78, ["folk rock", "singer-songwriter"], 5),
-    ("ar2", "Taylor Swift", 98, ["pop", "country pop"], 4),
-    ("ar3", "Death Cab for Cutie", 65, ["indie rock", "alternative rock"], 3),
-    ("ar4", "Ben Folds", 55, ["pop rock", "piano"], 2),
-    ("ar5", "Nirvana", 82, ["grunge", "hard rock"], 1),
+    ("ar1", "Bob Dylan", 78, ["folk rock", "singer-songwriter"]),
+    ("ar2", "Taylor Swift", 98, ["pop", "country pop"]),
+    ("ar3", "Death Cab for Cutie", 65, ["indie rock", "alternative rock"]),
+    ("ar4", "Ben Folds", 55, ["pop rock", "piano"]),
+    ("ar5", "Nirvana", 82, ["grunge", "hard rock"]),
 ]
 
-# (track_id, artist_id, name, plays)
+# (track_id, artist_id, name, plays, explicit, audio-feature profile)
 TRACKS = [
-    ("tr1", "ar3", "Soul Meets Body", 3),
-    ("tr2", "ar1", "The Hard Way", 2),
-    ("tr3", "ar4", "Rockin' the Suburbs", 2),
-    ("tr4", "ar1", "Like a Rolling Stone", 3),
-    ("tr5", "ar2", "All Too Well", 4),
-    ("tr6", "ar5", "Come as You Are", 1),
+    ("tr1", "ar3", "Soul Meets Body", 3, 0, (0.55, 0.62, 0.48, 0.21, 0.02, 0.04, -6.1, 118.0)),
+    ("tr2", "ar1", "The Hard Way", 2, 0, (0.41, 0.38, 0.35, 0.72, 0.01, 0.03, -9.4, 96.0)),
+    ("tr3", "ar4", "Rockin' the Suburbs", 2, 1, (0.63, 0.71, 0.66, 0.14, 0.00, 0.06, -5.2, 132.0)),
+    ("tr4", "ar1", "Like a Rolling Stone", 3, 0, (0.47, 0.55, 0.52, 0.58, 0.01, 0.04, -8.0, 108.0)),
+    ("tr5", "ar2", "All Too Well", 4, 0, (0.58, 0.49, 0.30, 0.44, 0.00, 0.03, -7.3, 93.0)),
+    ("tr6", "ar5", "Come as You Are", 1, 0, (0.51, 0.84, 0.42, 0.05, 0.03, 0.05, -4.1, 120.0)),
 ]
 
-FULL_INTELLIGENCE = {
-    "findings": [{"title": "Rock dominates", "detail": "Rock is 40% of plays."}],
-    "anomalies": {"findings": [{"title": "Late-night spike", "detail": "2am plays up."}]},
-    "listener_archetype": {
-        "archetype": "The Explorer",
-        "archetype_key": "explorer",
-        "archetype_signals": [
-            {"signal": "artist_variety", "description": "You spread plays across many artists."}
-        ],
-        "supporting_metrics": {"unique_artists": 5},
-    },
-    "audio_characteristics": {
-        "audio_characteristics": {
-            "avg_valence": 0.42,
-            "avg_energy": 0.61,
-            "avg_acousticness": 0.28,
-            "avg_danceability": 0.5,
-        }
-    },
-    "explicit_content": {"explicit_percentage": 12.5},
-    "taste_evolution": {
-        "timeline": [
-            {
-                "period": "2026-07",
-                "plays": 7,
-                "unique_tracks": 5,
-                "unique_artists": 4,
-                "top_genre": "folk rock",
-            },
-            {
-                "period": "2026-08",
-                "plays": 8,
-                "unique_tracks": 6,
-                "unique_artists": 5,
-                "top_genre": "pop",
-            },
-        ]
-    },
-    "time_of_day": {
-        "hourly_breakdown": {"14": 6, "22": 9},
-        "daily_breakdown": {"Monday": 5, "Friday": 10},
-        "time_of_day": {"afternoon": 6, "night": 9},
-        "peak_hour": 22,
-        "peak_day": "Friday",
-    },
-    "listening_frequency": {"active_days": ["Monday", "Friday"]},
-}
+# The warehouse is small on purpose. Spotify's snapshot tables list an artist
+# the warehouse has never seen, so the list-padding path stays exercised.
+UNPLAYED_ARTIST = ("ar_unplayed", "Never Played", 10)
 
 
-def build_fixture_db(path: str) -> str:
-    """Create a seeded warehouse DB at `path` and return the path."""
-    db = sqlite3.connect(path)
-    db.executescript(SCHEMA)
-
-    for artist_id, name, popularity, genres, _plays in ARTISTS:
-        db.execute("INSERT INTO artists VALUES (?,?,?)", (artist_id, name, popularity))
+def _seed_rows(db, now: int) -> None:
+    """Insert the warehouse rows. `now` anchors the listening events."""
+    for artist_id, name, popularity, genres in ARTISTS:
+        db.execute(
+            "INSERT INTO artists VALUES (?,?,?,?)",
+            (artist_id, name, ",".join(genres), popularity),
+        )
         for genre in genres:
             db.execute("INSERT INTO artist_genres VALUES (?,?)", (artist_id, genre))
+    db.execute("INSERT INTO artists VALUES (?,?,?,?)", (*UNPLAYED_ARTIST[:2], "", UNPLAYED_ARTIST[2]))
 
     artist_names = {a[0]: a[1] for a in ARTISTS}
 
-    # One album per artist, named after them, so album joins have something.
-    for artist_id, name, popularity, _genres, _plays in ARTISTS:
+    # One album per artist, so the album joins have something to find.
+    for artist_id, name, popularity, _genres in ARTISTS:
         db.execute(
             "INSERT INTO albums VALUES (?,?,?,?,?,?)",
             (f"al{artist_id}", f"{name} — Greatest", name, "2020-01-01", 12, popularity),
         )
 
-    played_at = 1_750_000_000
-    for track_id, artist_id, name, plays in TRACKS:
+    # Plays walk backwards from `now` in 3-hour steps, so they land across
+    # several hours and weekdays and always look recent to the analytics
+    # engine's date-range maths.
+    offset = 0
+    for position, (track_id, artist_id, name, plays, explicit, features) in enumerate(TRACKS, start=1):
         album_id = f"al{artist_id}"
         db.execute(
-            "INSERT INTO tracks VALUES (?,?,?,?,?,?,?,?)",
+            "INSERT INTO tracks VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (
                 track_id,
                 name,
@@ -180,10 +160,17 @@ def build_fixture_db(path: str) -> str:
                 f"{artist_names[artist_id]} — Greatest",
                 215_000,
                 60,
+                explicit,
+                1,
+                position,
             ),
         )
+        db.execute(
+            "INSERT INTO audio_features VALUES (?,?,?,?,?,?,?,?,?)", (track_id, *features)
+        )
         for _ in range(plays):
-            played_at += 3600
+            offset += 3 * 3600
+            played_at = now - offset
             db.execute(
                 "INSERT INTO listening_events (track_id, artist_id, album_id, played_at, timestamp)"
                 " VALUES (?,?,?,?,?)",
@@ -192,7 +179,9 @@ def build_fixture_db(path: str) -> str:
         db.execute("INSERT INTO saved_tracks VALUES (?,?)", (track_id, "2026-01-01T00:00:00Z"))
 
     for artist_id, *_ in ARTISTS:
-        db.execute("INSERT INTO saved_albums VALUES (?,?)", (f"al{artist_id}", "2026-01-01T00:00:00Z"))
+        db.execute(
+            "INSERT INTO saved_albums VALUES (?,?)", (f"al{artist_id}", "2026-01-01T00:00:00Z")
+        )
 
     for i in range(3):
         db.execute(
@@ -200,21 +189,48 @@ def build_fixture_db(path: str) -> str:
             (f"pl{i}", f"Playlist {i}", f"Description {i}", 20 + i, 1, 0),
         )
 
-    # Snapshots deliberately overlap the plays only partially — this is the
-    # condition that used to make every play count read 0.
     for rank, (artist_id, *_rest) in enumerate(ARTISTS, start=1):
-        db.execute("INSERT INTO top_artists_snapshots VALUES (?,?,?)", (artist_id, "long_term", rank))
-    db.execute("INSERT INTO top_artists_snapshots VALUES (?,?,?)", ("ar_unplayed", "long_term", 99))
-    db.execute("INSERT INTO artists VALUES (?,?,?)", ("ar_unplayed", "Never Played", 10))
-
-    for rank, (track_id, *_rest) in enumerate(TRACKS, start=1):
-        db.execute("INSERT INTO top_tracks_snapshots VALUES (?,?,?)", (track_id, "long_term", rank))
-
+        db.execute(
+            "INSERT INTO top_artists_snapshots VALUES (?,?,?)", (artist_id, "long_term", rank)
+        )
     db.execute(
-        "INSERT INTO analytics_cache VALUES (?,?)",
-        ("full_intelligence", json.dumps(FULL_INTELLIGENCE)),
+        "INSERT INTO top_artists_snapshots VALUES (?,?,?)", (UNPLAYED_ARTIST[0], "long_term", 99)
     )
 
+    for rank, (track_id, *_rest) in enumerate(TRACKS, start=1):
+        db.execute(
+            "INSERT INTO top_tracks_snapshots VALUES (?,?,?)", (track_id, "long_term", rank)
+        )
+
+
+def _cache_analytics(path: str) -> None:
+    """Run the real analytics engine over the fixture and cache its output.
+
+    The endpoints that read `full_intelligence` are only as well tested as the
+    blob they read, so the fixture uses whatever analytics.py actually
+    produces rather than a hand-written approximation that can drift from it.
+    """
+    import analytics
+
+    original = analytics.DB_PATH
+    analytics.DB_PATH = path
+    try:
+        results = analytics.run_all_analytics()
+        analytics.save_analytics_cache(results)
+    finally:
+        analytics.DB_PATH = original
+
+
+def build_fixture_db(path: str, now: int | None = None) -> str:
+    """Create a seeded warehouse DB at `path` and return the path."""
+    if now is None:
+        now = int(time.time())
+
+    db = sqlite3.connect(path)
+    db.executescript(SCHEMA)
+    _seed_rows(db, now)
     db.commit()
     db.close()
+
+    _cache_analytics(path)
     return path
