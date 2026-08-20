@@ -192,99 +192,146 @@ def api_genres():
 
 @app.route("/api/top-artists")
 def api_top_artists():
-    """Top artists across all time ranges."""
+    """Top artists, ranked by actual plays in the local warehouse.
+
+    The Spotify `top_artists_snapshots` table only carries API rank data and
+    barely overlaps the plays we have recorded, so ranking off it left most
+    rows at 0 plays.  We aggregate `listening_events` instead and fall back to
+    the snapshots for names only when the warehouse is too thin to fill a list.
+    """
     db = get_db()
-    
-    artists_long = db.execute(
+
+    played = db.execute(
         """SELECT a.name, a.popularity, GROUP_CONCAT(DISTINCT ag.genre) as genres,
-                COUNT(le.track_id) as play_count, COUNT(DISTINCT le.track_id) as unique_tracks
-           FROM top_artists_snapshots tas
-           JOIN artists a ON tas.artist_id = a.id
-           LEFT JOIN artist_genres ag ON a.id = ag.artist_id
-           LEFT JOIN listening_events le ON a.id = le.artist_id
-           WHERE tas.time_range = 'long_term'
+                p.play_count, p.unique_tracks
+           FROM (SELECT artist_id,
+                        COUNT(*) as play_count,
+                        COUNT(DISTINCT track_id) as unique_tracks
+                 FROM listening_events
+                 WHERE artist_id IS NOT NULL
+                 GROUP BY artist_id) p
+           JOIN artists a ON a.id = p.artist_id
+           LEFT JOIN artist_genres ag ON ag.artist_id = a.id
            GROUP BY a.id
-           ORDER BY tas.rank
+           ORDER BY p.play_count DESC, a.name
            LIMIT 20"""
     ).fetchall()
-    
-    artists_medium = db.execute(
-        """SELECT a.name, a.popularity, GROUP_CONCAT(DISTINCT ag.genre) as genres,
-                COUNT(le.track_id) as play_count
-           FROM top_artists_snapshots tas
-           JOIN artists a ON tas.artist_id = a.id
-           LEFT JOIN artist_genres ag ON a.id = ag.artist_id
-           LEFT JOIN listening_events le ON a.id = le.artist_id
-           WHERE tas.time_range = 'medium_term'
-           GROUP BY a.id
-           ORDER BY tas.rank
-           LIMIT 20"""
-    ).fetchall()
-    
+
     top = []
     seen = set()
-    
-    # Merge long-term and medium-term, preferring long-term
-    for a in artists_long:
-        if a["name"] not in seen:
+    for a in played:
+        if a["name"] in seen:
+            continue
+        seen.add(a["name"])
+        top.append({
+            "name": a["name"],
+            "popularity": a["popularity"],
+            "genres": a["genres"].split(",") if a["genres"] else [],
+            "play_count": a["play_count"],
+            "unique_tracks": a["unique_tracks"],
+            "time_range": "warehouse",
+        })
+
+    # Warehouse too sparse to fill the list — pad from the API snapshots.
+    if len(top) < 15:
+        snapshot = db.execute(
+            """SELECT a.name, a.popularity, GROUP_CONCAT(DISTINCT ag.genre) as genres,
+                    MIN(tas.rank) as rank
+               FROM top_artists_snapshots tas
+               JOIN artists a ON a.id = tas.artist_id
+               LEFT JOIN artist_genres ag ON ag.artist_id = a.id
+               WHERE tas.time_range IN ('long_term', 'medium_term')
+               GROUP BY a.id
+               ORDER BY rank
+               LIMIT 30"""
+        ).fetchall()
+        for a in snapshot:
+            if len(top) >= 15:
+                break
+            if a["name"] in seen:
+                continue
             seen.add(a["name"])
             top.append({
                 "name": a["name"],
                 "popularity": a["popularity"],
                 "genres": a["genres"].split(",") if a["genres"] else [],
-                "play_count": a["play_count"],
-                "unique_tracks": a["unique_tracks"],
+                "play_count": 0,
+                "unique_tracks": 0,
                 "time_range": "long_term",
             })
-    
-    for a in artists_medium:
-        if a["name"] not in seen:
-            seen.add(a["name"])
-            top.append({
-                "name": a["name"],
-                "popularity": a["popularity"],
-                "genres": a["genres"].split(",") if a["genres"] else [],
-                "play_count": a["play_count"],
-                "unique_tracks": 0,
-                "time_range": "medium_term",
-            })
-    
+
     db.close()
     return jsonify({"artists": top[:15]})
 
 
 @app.route("/api/top-tracks")
 def api_top_tracks():
-    """Top tracks across all time ranges."""
+    """Top tracks, ranked by actual plays in the local warehouse.
+
+    Same rationale as `api_top_artists`: rank from `listening_events`, use the
+    snapshots only to pad a short list.
+    """
     db = get_db()
-    
-    tracks = db.execute(
+
+    def shape(row, play_count):
+        duration = row["duration_ms"] or 0
+        return {
+            "name": row["name"],
+            "artist": row["artist_name"],
+            "album": row["album_name"],
+            "popularity": row["popularity"],
+            "duration_ms": duration,
+            "play_count": play_count,
+            "genres": row["genres"].split(",") if row["genres"] else [],
+            "duration_formatted": f"{duration // 60000}:{(duration % 60000) // 1000:02d}",
+        }
+
+    played = db.execute(
         """SELECT t.name, t.popularity, t.duration_ms, t.artist_name, t.album_name,
-                COUNT(le.track_id) as play_count,
+                p.play_count,
                 GROUP_CONCAT(DISTINCT ag.genre) as genres
-           FROM top_tracks_snapshots tts
-           JOIN tracks t ON tts.track_id = t.id
-           LEFT JOIN listening_events le ON t.id = le.track_id
-           LEFT JOIN artist_genres ag ON t.artist_id = ag.artist_id
-           WHERE tts.time_range = 'long_term'
+           FROM (SELECT track_id, COUNT(*) as play_count
+                 FROM listening_events
+                 WHERE track_id IS NOT NULL
+                 GROUP BY track_id) p
+           JOIN tracks t ON t.id = p.track_id
+           LEFT JOIN artist_genres ag ON ag.artist_id = t.artist_id
            GROUP BY t.id
-           ORDER BY tts.rank
+           ORDER BY p.play_count DESC, t.name
            LIMIT 20"""
     ).fetchall()
-    
+
     track_list = []
-    for t in tracks:
-        track_list.append({
-            "name": t["name"],
-            "artist": t["artist_name"],
-            "album": t["album_name"],
-            "popularity": t["popularity"],
-            "duration_ms": t["duration_ms"],
-            "play_count": t["play_count"],
-            "genres": t["genres"].split(",") if t["genres"] else [],
-            "duration_formatted": f"{t['duration_ms'] // 60000}:{(t['duration_ms'] % 60000) // 1000:02d}",
-        })
-    
+    seen = set()
+    for t in played:
+        key = (t["name"], t["artist_name"])
+        if key in seen:
+            continue
+        seen.add(key)
+        track_list.append(shape(t, t["play_count"]))
+
+    if len(track_list) < 15:
+        snapshot = db.execute(
+            """SELECT t.name, t.popularity, t.duration_ms, t.artist_name, t.album_name,
+                    GROUP_CONCAT(DISTINCT ag.genre) as genres,
+                    MIN(tts.rank) as rank
+               FROM top_tracks_snapshots tts
+               JOIN tracks t ON t.id = tts.track_id
+               LEFT JOIN artist_genres ag ON ag.artist_id = t.artist_id
+               WHERE tts.time_range IN ('long_term', 'medium_term')
+               GROUP BY t.id
+               ORDER BY rank
+               LIMIT 30"""
+        ).fetchall()
+        for t in snapshot:
+            if len(track_list) >= 15:
+                break
+            key = (t["name"], t["artist_name"])
+            if key in seen:
+                continue
+            seen.add(key)
+            track_list.append(shape(t, 0))
+
     db.close()
     return jsonify({"tracks": track_list[:15]})
 
@@ -346,14 +393,11 @@ def api_time_of_day():
            ORDER BY hour"""
     ).fetchall()
     
-    hours = {}
-    for h in hourly:
-        hours[h["hour"]] = h["plays"]
-    
-    # Fill missing hours
+    hours = {h["hour"]: h["plays"] for h in hourly if h["hour"] is not None}
+
+    # Fill missing hours — keys are the zero-padded strings strftime returns.
     for h in range(24):
-        if h not in hours:
-            hours[h] = 0
+        hours.setdefault(f"{h:02d}", 0)
     
     # Daily
     daily = db.execute(
@@ -370,9 +414,7 @@ def api_time_of_day():
         if dow_val is not None:
             days[day_names[int(dow_val)]] = d["plays"]
     
-    # Sort keys, filtering out None
-    sorted_keys = sorted([k for k in hours if k is not None])
-    hourly_dict = {str(k): hours[k] for k in sorted_keys}
+    hourly_dict = {k: hours[k] for k in sorted(hours)}
 
     db.close()
     return jsonify({
