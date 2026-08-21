@@ -58,7 +58,9 @@
 
     /* ===== Refresh ===== */
     attachRefreshButtons() {
-      document.querySelectorAll('.refresh-btn, .btn-action').forEach((btn) => {
+      document.querySelectorAll('.refresh-btn, .btn-action, [data-action="refresh"]').forEach((btn) => {
+        if (btn.hasAttribute('data-refresh-bound')) return;
+        btn.setAttribute('data-refresh-bound', 'true');
         btn.addEventListener('click', () => this.refreshAll());
       });
     },
@@ -72,6 +74,8 @@
           this.loadListening(),
           this.loadLibrary(),
           this.loadIntelligence(),
+          this.loadSettings(),
+          this.loadRecentActivity(),
         ]);
       } catch (e) {
         console.warn('Refresh error:', e);
@@ -230,18 +234,23 @@
       const families = data.families || [];
       const familyEls = container.querySelectorAll('.genre-family');
 
-      families.forEach((f, i) => {
-        if (i >= familyEls.length) return;
-        const el = familyEls[i];
+      familyEls.forEach((el, i) => {
+        const f = families[i];
+        if (!f) { el.style.display = 'none'; return; }
+        el.style.display = '';
         const nameEl = el.querySelector('.genre-family-name');
         const countEl = el.querySelector('.genre-family-count');
         const tagsEl = el.querySelector('.genre-family-tags');
         if (nameEl) nameEl.textContent = f.name;
         if (countEl) countEl.textContent = f.total_plays.toLocaleString() + ' plays';
         if (tagsEl) {
-          tagsEl.innerHTML = f.genres.map(g =>
-            `<span class="genre-tag secondary">${g}</span>`
-          ).join('');
+          tagsEl.textContent = '';
+          f.genres.forEach((g) => {
+            const tag = document.createElement('span');
+            tag.className = 'genre-tag secondary';
+            tag.textContent = g;
+            tagsEl.appendChild(tag);
+          });
         }
       });
     },
@@ -252,42 +261,60 @@
       if (nameEl) nameEl.textContent = analytics.listener_archetype?.archetype || 'The Listener';
       if (descEl) {
         const signals = analytics.listener_archetype?.archetype_signals || [];
-        descEl.textContent = signals.map(s => s.description).join(' ') ||
+        descEl.textContent = signals.map(s => s.description).filter(Boolean).join('. ') ||
           'Your listener archetype will appear here as data accumulates.';
       }
     },
 
     renderMusicDNA(analytics) {
-      const dna = analytics.music_dna?.dna || {};
-      const grid = document.querySelector('.dna-grid');
+      // .dna-grid on Overview, .dna-grid-wide on Taste — querying only the
+      // first left the Taste page on its mock bars.
+      const grid = document.querySelector('.dna-grid, .dna-grid-wide');
       if (!grid) return;
 
-      // Map API dimensions to design-system labels
+      const dna = analytics.music_dna?.dna || {};
+      const audio = analytics.audio_characteristics?.audio_characteristics || {};
+
+      const scale = (value, min, max) =>
+        value === undefined || value === null
+          ? null
+          : Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
+
+      // music_dna carries the vs-pairs only; the raw features (danceability,
+      // tempo, loudness, speechiness, instrumentalness) live in
+      // audio_characteristics. Reading them off music_dna pinned five of the
+      // eight bars to the 50 default.
       const dims = [
-        { key: 'high_energy_vs_low_energy', label: 'Energetic', val: dna['high_energy_vs_low_energy']?.high_energy, max: 100 },
-        { key: 'acoustic_vs_electronic', label: 'Acoustic', val: dna['acoustic_vs_electronic']?.acoustic, max: 100 },
-        { key: 'danceability', label: 'Danceable', val: dna['danceability'], max: 100 },
-        { key: 'positive_vs_melancholic', label: 'Positive', val: dna['positive_vs_melancholic']?.positive, max: 100 },
-        { key: 'tempo', label: 'Tempo', val: dna['tempo'], max: 100 },
-        { key: 'loudness', label: 'Loud', val: dna['loudness'], max: 100 },
-        { key: 'live', label: 'Live', val: dna['live'], max: 100 },
-        { key: 'instrumental', label: 'Instrumental', val: dna['instrumental'], max: 100 },
+        { key: 'high_energy_vs_low_energy', label: 'Energetic',
+          val: dna.high_energy_vs_low_energy?.high_energy ?? scale(audio.energy, 0, 1) },
+        { key: 'acoustic_vs_electronic', label: 'Acoustic',
+          val: dna.acoustic_vs_electronic?.acoustic ?? scale(audio.acousticness, 0, 1) },
+        { key: 'danceability', label: 'Danceable', val: scale(audio.danceability, 0, 1) },
+        { key: 'positive_vs_melancholic', label: 'Positive',
+          val: dna.positive_vs_melancholic?.positive ?? scale(audio.valence, 0, 1) },
+        { key: 'tempo', label: 'Tempo', val: scale(audio.tempo, 60, 180) },
+        { key: 'loudness', label: 'Loud', val: scale(audio.loudness, -60, 0) },
+        { key: 'speechiness', label: 'Speechy', val: scale(audio.speechiness, 0, 1) },
+        { key: 'instrumental', label: 'Instrumental', val: scale(audio.instrumentalness, 0, 1) },
       ];
 
       const items = grid.querySelectorAll('.dna-item');
-      dims.forEach((dim, i) => {
-        if (i >= items.length) return;
-        const item = items[i];
+      items.forEach((item, i) => {
+        const dim = dims[i];
+        if (!dim) { item.style.display = 'none'; return; }
+        item.style.display = '';
+
         const barFill = item.querySelector('.bar-fill');
         const valEl = item.querySelector('.bar-value');
         const labelEl = item.querySelector('.bar-label');
+        const pct = Math.round(Math.min(100, Math.max(0, dim.val ?? 50)));
+
         if (labelEl) labelEl.textContent = dim.label;
         if (barFill) {
-          const pct = Math.min(100, Math.max(0, dim.val ?? 50));
           barFill.style.width = pct + '%';
           barFill.style.background = this.dnaColor(dim.key);
         }
-        if (valEl) valEl.textContent = Math.round(pct);
+        if (valEl) valEl.textContent = pct;
       });
     },
 
@@ -299,7 +326,7 @@
         'positive_vs_melancholic': '#f59e0b',
         'tempo': 'var(--accent)',
         'loudness': '#ef4444',
-        'live': '#22d3ee',
+        'speechiness': '#22d3ee',
         'instrumental': '#a78bfa',
       };
       return colors[key] || 'var(--accent)';
@@ -313,7 +340,9 @@
           this.fetchJSON('/api/analytics'),
         ]);
         this.renderGenreFamilies(genres);
-        this.renderDiversityScore(genres);
+        // The diversity block reads genre_diversity, which only /api/analytics
+        // carries — passing the genre payload left it reporting 0 genres.
+        this.renderDiversityScore(analytics);
         this.renderDiscoveryMeter(analytics);
         this.renderMusicDNA(analytics);
       } catch (e) {
@@ -322,7 +351,7 @@
     },
 
     renderDiversityScore(data) {
-      const scoreEl = document.querySelector('.diversity-score-value');
+      const scoreEl = document.querySelector('.diversity-value, .diversity-score-value');
       const badgeEl = document.querySelector('.diversity-badge');
       const barEl = document.querySelector('.diversity-bar');
       const captionEl = document.querySelector('.diversity-caption');
@@ -334,9 +363,17 @@
       if (badgeEl) {
         badgeEl.textContent = score >= 80 ? 'High diversity' : score >= 50 ? 'Moderate diversity' : 'Low diversity';
       }
-      if (barEl) barEl.style.width = score + '%';
+      // .diversity-bar is the track; the gradient fill is its child.
+      if (barEl) {
+        const fill = barEl.firstElementChild;
+        if (fill) fill.style.width = score + '%';
+        else barEl.style.width = score + '%';
+      }
       if (captionEl) {
-        captionEl.textContent = `Across ${count} genres — wider than most listeners, who cluster around 6–10.`;
+        const comparison = count >= 15
+          ? ' — wider than most listeners, who cluster around 6–10.'
+          : count > 0 ? '.' : ' yet.';
+        captionEl.textContent = `Across ${count} genre${count === 1 ? '' : 's'}${comparison}`;
       }
     },
 
@@ -345,7 +382,7 @@
       const comfort = discovery.comfort_score || 0;
       const discoveryVal = discovery.discovery_rate || 0;
 
-      const trackEl = document.querySelector('.discovery-track');
+      const trackEl = document.querySelector('.discovery-meter-track, .discovery-track');
       const comfortEl = document.querySelector('.discovery-comfort');
       const discoveryEl = document.querySelector('.discovery-discovery');
       const captionEl = document.querySelector('.discovery-caption');
@@ -384,17 +421,46 @@
       }
 
       const max = Math.max(...timeline.map(t => t.total_plays), 1);
+      // Show the most recent periods when the timeline is longer than the
+      // markup, rather than the oldest. Columns are right-aligned so a short
+      // history fills the newest slots and leaves empty tracks behind it.
+      const shown = timeline.slice(-bars.length);
+      const offset = bars.length - shown.length;
 
       bars.forEach((bar, i) => {
-        if (i >= timeline.length) { bar.style.display = 'none'; return; }
-        bar.style.display = '';
-        const t = timeline[i];
-        const pct = (t.total_plays / max) * 100;
+        const t = shown[i - offset];
         const fill = bar.querySelector('.evolution-bar-fill');
         const label = bar.querySelector('.evolution-bar-label');
-        if (fill) fill.style.height = pct + '%';
+
+        // Every column is a full-height track; the fill inside it carries the
+        // value. Sizing only the fill left each track at its mock height, so
+        // the columns were not comparable.
+        bar.style.height = '100%';
+        bar.style.display = '';
+
+        if (!t) {
+          if (fill) fill.style.height = '0%';
+          if (label) label.textContent = '';
+          bar.removeAttribute('title');
+          return;
+        }
+
+        if (fill) fill.style.height = Math.max((t.total_plays / max) * 100, 2) + '%';
         if (label) label.textContent = t.period || '';
+        bar.title = `${t.period}: ${t.total_plays} plays`;
       });
+
+      const caption = document.querySelector('.evolution-caption');
+      if (caption) {
+        const total = timeline.reduce((sum, t) => sum + (t.total_plays || 0), 0);
+        caption.textContent =
+          `${total.toLocaleString()} plays across ${timeline.length} ` +
+          `${timeline.length === 1 ? 'period' : 'periods'}, ${shown[0].period} to ${shown[shown.length - 1].period}.`;
+      }
+
+      // The per-column labels replace the static month axis from the mock.
+      const axis = document.querySelector('.evolution-axis');
+      if (axis) axis.style.display = 'none';
     },
 
     /* ===== Listening ===== */
@@ -406,6 +472,7 @@
         ]);
         this.renderMusicClock(timeOfDay);
         this.renderWeekBars(timeOfDay);
+        this.renderWeekendSplit(timeOfDay);
         this.renderSessions(sessions);
       } catch (e) {
         console.warn('Listening load error:', e);
@@ -454,6 +521,37 @@
       bars.forEach((bar, i) => {
         const name = dayNames[i];
         bar.style.height = (days[name] ? ((days[name] / max) * 100) : 5) + '%';
+      });
+    },
+
+    renderWeekendSplit(data) {
+      const rows = document.querySelectorAll('.weekend-stats .weekend-stat-row');
+      if (!rows.length) return;
+
+      const daily = data.daily || {};
+      const sumOf = (days) => days.reduce((total, d) => total + (daily[d] || 0), 0);
+      const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      const weekend = ['Saturday', 'Sunday'];
+
+      const weekdayAvg = sumOf(weekdays) / weekdays.length;
+      const weekendAvg = sumOf(weekend) / weekend.length;
+      const peak = Math.max(weekdayAvg, weekendAvg, 1);
+      const ratio = weekdayAvg > 0 ? Math.round((weekendAvg / weekdayAvg) * 100) : 0;
+
+      const round = (n) => (n >= 10 ? Math.round(n) : Math.round(n * 10) / 10);
+      const values = [
+        `${round(weekdayAvg).toLocaleString()} plays/day`,
+        `${round(weekendAvg).toLocaleString()} plays/day`,
+        `${ratio}% of weekday`,
+      ];
+      rows.forEach((row, i) => {
+        const valueEl = row.querySelector('.weekend-stat-value');
+        if (valueEl && values[i] !== undefined) valueEl.textContent = values[i];
+      });
+
+      const fills = document.querySelectorAll('.weekend-stats .weekend-bar-fill');
+      [weekdayAvg, weekendAvg].forEach((avg, i) => {
+        if (fills[i]) fills[i].style.width = Math.round((avg / peak) * 100) + '%';
       });
     },
 
@@ -515,7 +613,24 @@
       }
     },
 
+    attachLibraryTabs() {
+      document.querySelectorAll('.tab-btn:not([data-bound])').forEach((btn) => {
+        btn.setAttribute('data-bound', 'true');
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          if (!tab) return;
+          this.libraryState = { tab };
+          if (this.libraryData) {
+            this.renderLibraryContent(tab, this.libraryData);
+          } else {
+            this.loadLibrary();
+          }
+        });
+      });
+    },
+
     renderLibraryTabs(data) {
+      this.libraryData = data;
       // Update tab counts
       const tracksBtn = document.querySelector('.tab-btn[data-tab="tracks"]');
       const albumsBtn = document.querySelector('.tab-btn[data-tab="albums"]');
@@ -581,27 +696,29 @@
     },
 
     renderSavedAlbums(albums) {
-      const grid = document.querySelector('.lib-albums-grid');
+      const grid = document.querySelector('.lib-albums .album-grid, .lib-albums-grid');
       if (!grid) return;
-      // In the Figma design, albums are shown in a grid with plate images
-      // We'll show the name and artist info
       const items = grid.querySelectorAll('.album-item');
-      albums.slice(0, items.length).forEach((a, i) => {
-        const item = items[i];
+      items.forEach((item, i) => {
+        const a = albums[i];
+        if (!a) { item.style.display = 'none'; return; }
+        item.style.display = '';
         const nameEl = item.querySelector('.album-name');
         const metaEl = item.querySelector('.album-meta');
         if (nameEl) nameEl.textContent = a.name;
-        if (metaEl) metaEl.textContent = a.artist + ' · ' + (a.release_date || '');
+        if (metaEl) metaEl.textContent = [a.artist, a.release_date].filter(Boolean).join(' · ');
       });
     },
 
     renderPlaylists(playlists) {
-      const grid = document.querySelector('.lib-playlists-grid');
+      const grid = document.querySelector('.lib-playlists .playlist-grid, .lib-playlists-grid');
       if (!grid) return;
       const items = grid.querySelectorAll('.playlist-card');
 
-      playlists.slice(0, items.length).forEach((p, i) => {
-        const item = items[i];
+      items.forEach((item, i) => {
+        const p = playlists[i];
+        if (!p) { item.style.display = 'none'; return; }
+        item.style.display = '';
         const nameEl = item.querySelector('.playlist-name');
         const countEl = item.querySelector('.playlist-track-count');
         const badgeEl = item.querySelector('.playlist-badge');
@@ -632,9 +749,12 @@
     /* ===== Intelligence ===== */
     async loadIntelligence() {
       try {
-        const data = await this.fetchJSON('/api/analytics');
+        const [data, insights] = await Promise.all([
+          this.fetchJSON('/api/analytics'),
+          this.fetchJSON('/api/insights').catch(() => null),
+        ]);
         this.renderArchetype(data);
-        this.renderInsights(data);
+        this.renderInsights(data, insights);
         this.renderAnomalies(data);
         this.renderRecommendations(data);
       } catch (e) {
@@ -642,19 +762,21 @@
       }
     },
 
-    renderInsights(data) {
+    renderInsights(data, served) {
       const list = document.querySelector('.insights-list');
       if (!list) return;
 
-      const insights = data.ai_insights || [];
-      // If no structured insights, derive from analytics
-      const derived = insights.length > 0 ? insights :
-        this.deriveInsights(data);
+      // /api/insights derives these server-side; fall back to the local rules
+      // when it is unreachable.
+      const derived = (served && served.insights && served.insights.length)
+        ? served.insights
+        : this.deriveInsights(data);
 
       const cards = list.querySelectorAll('.insight-card');
-      derived.slice(0, cards.length).forEach((ins, i) => {
-        const card = cards[i];
-        if (card) card.textContent = ins;
+      cards.forEach((card, i) => {
+        if (i >= derived.length) { card.style.display = 'none'; return; }
+        card.style.display = '';
+        card.textContent = derived[i];
       });
     },
 
@@ -665,7 +787,7 @@
       const archetype = data.listener_archetype;
 
       if (diversity) {
-        list.push(`Your genre diversity (Shannon index ${diversity.diversity_score}) puts you in the top band of listeners we can measure — you're not settled into one lane.`);
+        list.push(`You span ${diversity.genre_count} genres, with a diversity score of ${diversity.diversity_score}% (Shannon index ${diversity.shannon_index}).`);
       }
       if (discovery && discovery.discovery_rate > 50) {
         list.push(`You discover new music at a ${discovery.discovery_rate}% rate — ${discovery.discovery_score > 70 ? 'well above' : 'above'} average. Your listening is actively expanding.`);
@@ -702,7 +824,10 @@
           const svg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8" style="flex:0 0 auto;margin-top:2px"><path d="M12 3l10 18H2z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>`;
           icon.innerHTML = svg;
         }
-        if (title) title.textContent = a.title || a.type || 'Anomaly';
+        if (title) {
+          title.textContent = a.title
+            || (a.type ? a.type.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : 'Anomaly');
+        }
         if (desc) desc.textContent = a.description || '';
       });
 
@@ -738,6 +863,89 @@
       }
     },
 
+    /* ===== Recent activity (Live page) ===== */
+    async loadRecentActivity() {
+      if (!document.querySelector('.activity-list')) return;
+      try {
+        const data = await this.fetchJSON('/api/recent?limit=20');
+        this.renderRecentActivity(data.plays || []);
+      } catch (e) {
+        console.warn('Recent activity load error:', e);
+      }
+    },
+
+    renderRecentActivity(plays) {
+      const items = document.querySelectorAll('.activity-list .activity-item');
+      items.forEach((item, i) => {
+        const play = plays[i];
+        if (!play) { item.style.display = 'none'; return; }
+        item.style.display = '';
+
+        const track = item.querySelector('.activity-track');
+        const artist = item.querySelector('.activity-artist');
+        const time = item.querySelector('.activity-time');
+        const ago = item.querySelector('.activity-ago');
+
+        if (track) track.textContent = play.track || '';
+        if (artist) artist.textContent = play.artist ? `— ${play.artist}` : '';
+        if (time) time.textContent = this.formatTimestamp(play.played_at);
+        if (ago) {
+          ago.textContent = play.tracks_ago === 0
+            ? 'most recent'
+            : `${play.tracks_ago} track${play.tracks_ago === 1 ? '' : 's'} ago`;
+        }
+      });
+    },
+
+    /* ===== Settings ===== */
+    async loadSettings() {
+      if (!document.querySelector('.settings-status')) return;
+      try {
+        const status = await this.fetchJSON('/api/status');
+        this.renderSettingsStatus(status);
+      } catch (e) {
+        console.warn('Settings load error:', e);
+      }
+    },
+
+    renderSettingsStatus(status) {
+      const counts = status.counts || {};
+      const set = (selector, value) => {
+        const el = document.querySelector(selector);
+        if (el) el.textContent = value;
+      };
+
+      set('.status-plays', (counts.plays || 0).toLocaleString());
+      set('.status-artists', (counts.artists || 0).toLocaleString());
+      set('.status-tracks', (counts.tracks || 0).toLocaleString());
+      set('.status-saved', ((counts.saved_tracks || 0) + (counts.saved_albums || 0)).toLocaleString());
+      set('.status-playlists', (counts.playlists || 0).toLocaleString());
+      set('.status-db-size', this.formatBytes(status.database_bytes));
+      set('.status-last-play', this.formatTimestamp(status.last_play));
+      set('.status-analytics', status.analytics_cached
+        ? this.formatTimestamp(status.analytics_computed_at)
+        : 'Never — run analytics.py --cache');
+    },
+
+    formatBytes(bytes) {
+      if (!bytes) return '—';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let value = bytes;
+      let unit = 0;
+      while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
+      return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+    },
+
+    formatTimestamp(iso) {
+      if (!iso) return '—';
+      const date = new Date(iso);
+      if (isNaN(date.getTime())) return '—';
+      return date.toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    },
+
     /* ===== Live ===== */
     startLivePolling() {
       if (this.liveInterval) clearInterval(this.liveInterval);
@@ -755,10 +963,10 @@
     },
 
     renderLive(data) {
-      const statusDot = document.querySelector('.live-status-dot');
+      const statusDot = document.querySelector('.live-dot, .live-status-dot');
       const statusText = document.querySelector('.live-status-text');
       const trackName = document.querySelector('.live-track-name');
-      const trackArtist = document.querySelector('.live-track-artist');
+      const trackArtist = document.querySelector('.live-artist, .live-track-artist');
       const progressFill = document.querySelector('.live-progress-fill');
       const currentTimeEl = document.querySelector('.live-current-time');
       const totalTimeEl = document.querySelector('.live-total-time');
@@ -775,10 +983,12 @@
         if (trackName) trackName.textContent = data.track.name;
         if (trackArtist) trackArtist.textContent = data.track.artist + ' — ' + data.track.album;
 
+        // progress_ms sits beside `track` in the response, not inside it.
+        const progressMs = data.progress_ms || 0;
         if (progressTrack && data.track.duration_ms > 0) {
-          const pct = Math.min(100, (data.track.progress_ms / data.track.duration_ms) * 100);
+          const pct = Math.min(100, (progressMs / data.track.duration_ms) * 100);
           if (progressFill) progressFill.style.width = pct + '%';
-          if (currentTimeEl) currentTimeEl.textContent = this.formatDuration(data.track.progress_ms);
+          if (currentTimeEl) currentTimeEl.textContent = this.formatDuration(progressMs);
           if (totalTimeEl) totalTimeEl.textContent = this.formatDuration(data.track.duration_ms);
         }
 

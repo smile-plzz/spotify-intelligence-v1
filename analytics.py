@@ -700,19 +700,39 @@ def compute_taste_evolution(db, period: str = "month") -> Dict[str, Any]:
             ORDER BY period, play_count DESC"""
     ).fetchall()
     
+    # Play totals come from the events alone.  The genre query fans out one
+    # row per genre and the artist query repeats the same plays again, so
+    # summing either (let alone both) inflates the total.
+    play_totals = db.execute(
+        f"""SELECT {group_by} as period,
+                   COUNT(*) as plays,
+                   COUNT(DISTINCT le.track_id) as unique_tracks,
+                   COUNT(DISTINCT le.artist_id) as unique_artists
+            FROM listening_events le
+            GROUP BY period"""
+    ).fetchall()
+
     # Aggregate per period
-    periods = defaultdict(lambda: {"genres": Counter(), "artists": Counter(), "plays": 0, "unique_tracks": set(), "unique_artists": set()})
-    
+    periods = defaultdict(
+        lambda: {
+            "genres": Counter(),
+            "artists": Counter(),
+            "plays": 0,
+            "unique_tracks": 0,
+            "unique_artists": 0,
+        }
+    )
+
+    for r in play_totals:
+        periods[r["period"]]["plays"] = r["plays"]
+        periods[r["period"]]["unique_tracks"] = r["unique_tracks"]
+        periods[r["period"]]["unique_artists"] = r["unique_artists"]
+
     for r in genre_evolution:
         periods[r["period"]]["genres"][r["genre"]] += r["play_count"]
-        periods[r["period"]]["plays"] += r["play_count"]
-    
+
     for r in artist_evolution:
-        period = r["period"]
-        periods[period]["artists"][r["artist_name"]] += r["play_count"]
-        periods[period]["unique_tracks"].add(r["track_id"] if "track_id" in r else "")
-        periods[period]["unique_artists"].add(r["artist_name"])
-        periods[period]["plays"] += r["play_count"]
+        periods[r["period"]]["artists"][r["artist_name"]] += r["play_count"]
     
     # Build evolution timeline
     timeline = []
@@ -722,19 +742,25 @@ def compute_taste_evolution(db, period: str = "month") -> Dict[str, Any]:
         top_genres = data["genres"].most_common(5)
         top_artists = data["artists"].most_common(5)
         
-        # Diversity metrics
-        genre_list = list(data["genres"].keys())
+        # Diversity metrics.  A play carries every genre its artist is tagged
+        # with, so the genre distribution is normalised by the genre-play
+        # total rather than the play count — otherwise the shares sum past
+        # 100% and the Shannon index is scaled by the tagging density.
+        genre_plays = sum(data["genres"].values())
         shannon = -sum(
-            (c / data["plays"]) * math.log(c / data["plays"])
-            for c in data["genres"].values() if c > 0 and data["plays"] > 0
-        ) if data["plays"] > 0 else 0
+            (c / genre_plays) * math.log(c / genre_plays)
+            for c in data["genres"].values() if c > 0
+        ) if genre_plays > 0 else 0
         
         timeline.append({
             "period": p,
             "total_plays": data["plays"],
-            "unique_artists": len(data["unique_artists"]),
-            "unique_tracks": len(data["unique_tracks"]),
-            "top_genres": [{"genre": g, "plays": c, "share": round(c/data["plays"]*100, 1)} for g, c in top_genres],
+            "unique_artists": data["unique_artists"],
+            "unique_tracks": data["unique_tracks"],
+            "top_genres": [
+                {"genre": g, "plays": c, "share": round(c / genre_plays * 100, 1) if genre_plays else 0}
+                for g, c in top_genres
+            ],
             "top_artists": [{"artist": a, "plays": c} for a, c in top_artists],
             "genre_diversity": round(shannon, 3),
         })

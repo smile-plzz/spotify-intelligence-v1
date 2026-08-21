@@ -16,7 +16,8 @@
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
   .pulse{animation:pulse 1.3s ease-in-out infinite}
-  .auth-step{display:flex;flex-direction:column;gap:14px;text-align:left}
+  .auth-steps{display:flex;flex-direction:column;gap:14px;text-align:left}
+  .auth-step{display:flex;align-items:center;gap:12px}
   .auth-step-done{display:flex;align-items:center;gap:12px}
   .auth-step-done svg{width:16px;height:16px;fill:none;stroke:#1ed760;stroke-width:2}
   .auth-step-done-text{font-size:14px;color:#e5e5e5}
@@ -31,22 +32,22 @@
   <svg class="spinner" width="42" height="42" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="42 14"/></svg>
   <h1 style="font-weight:700;letter-spacing:-0.02em;font-size:24px;margin:0 0 8px">Connecting your account</h1>
   <p style="color:#b3b3b3;font-size:14px;margin:0 0 28px">This only takes a moment.</p>
-  <div style="display:flex;flex-direction:column;gap:14px;text-align:left">
-    <div class="auth-step-done">
+  <div class="auth-steps">
+    <div class="auth-step auth-step-done">
       <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
-      <span class="auth-step-done-text">Authenticated with Spotify</span>
+      <span class="auth-step-text auth-step-done-text">Authenticated with Spotify</span>
     </div>
-    <div class="auth-step-done">
+    <div class="auth-step auth-step-done">
       <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
-      <span class="auth-step-done-text">Fetched your profile</span>
+      <span class="auth-step-text auth-step-done-text">Fetched your profile</span>
     </div>
-    <div class="auth-step-done pulse">
+    <div class="auth-step auth-step-done pulse">
       <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
-      <span class="auth-step-done-text">Syncing recent listening &amp; library…</span>
+      <span class="auth-step-text auth-step-done-text">Syncing recent listening &amp; library…</span>
     </div>
-    <div class="auth-step-pending">
+    <div class="auth-step auth-step-pending">
       <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
-      <span class="auth-step-pending-text">Computing analytics</span>
+      <span class="auth-step-text auth-step-pending-text">Computing analytics</span>
     </div>
   </div>
   <p style="font-size:12px;color:#555;margin-top:32px">First sync can take a minute for large libraries.</p>

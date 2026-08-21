@@ -61,6 +61,8 @@ The tunnel URL becomes your live dashboard. No new accounts, no payment.
 | `/api/timezone` | Inferred timezone and peak listening hour |
 | `/api/insights` | Generated listening insights |
 | `/api/anomalies` | Detected listening anomalies |
+| `/api/recent` | Most recent plays, newest first (`?limit=`, 1–100) |
+| `/api/status` | Warehouse counts, last play, analytics cache age, DB size |
 | `/health` | Liveness probe |
 
 ## Tests
@@ -77,6 +79,13 @@ endpoint's status and response schema, every page template rendering, static
 asset serving, the top-artists/top-tracks play-count aggregation, and a static
 check that `dashboard.js` calls no undefined methods during init. GitHub Actions
 runs it on every push and pull request (`.github/workflows/ci.yml`).
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `FLASK_PORT` / `FLASK_HOST` | `5000` / `0.0.0.0` | Where the dashboard listens |
+| `HERMES_AGENT_PATH` | the Windows hermes path | Where the Spotify client package lives. Without it, `/api/currently-playing` reports `connected: false` and everything else still works from the warehouse. |
 
 ## Credentials
 

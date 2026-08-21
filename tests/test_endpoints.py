@@ -8,6 +8,8 @@ import pytest
 # (path, top-level keys the dashboard.js handlers read)
 API_ENDPOINTS = [
     ("/health", ["status", "timestamp"]),
+    ("/api/status", ["counts", "last_play", "analytics_cached", "database_bytes"]),
+    ("/api/recent", ["plays", "count"]),
     ("/api/summary", ["total_plays", "unique_artists", "unique_tracks", "playlists"]),
     ("/api/genres", ["genres", "families", "total_genres"]),
     ("/api/top-artists", ["artists"]),
@@ -16,13 +18,13 @@ API_ENDPOINTS = [
     ("/api/time-of-day", ["hourly", "daily"]),
     ("/api/sessions", ["sessions"]),
     ("/api/library", ["saved_tracks", "saved_albums", "playlists"]),
-    ("/api/analytics", ["findings"]),
+    ("/api/analytics", ["total_listening", "genre_diversity", "music_dna", "listener_archetype"]),
     ("/api/listening-patterns", ["hourly", "daily", "peak_hour", "peak_day"]),
-    ("/api/mood", ["overall_mood", "valence_avg", "energy_avg"]),
+    ("/api/mood", ["overall_mood", "valence_avg", "energy_avg", "acoustic_avg", "danceable_avg"]),
     ("/api/archetype", ["archetype", "archetype_key"]),
     ("/api/evolution", ["timeline"]),
     ("/api/playlist", ["playlists"]),
-    ("/api/timezone", ["timezone", "utc_offset", "peak_hour"]),
+    ("/api/timezone", ["timezone", "utc_offset", "peak_hour", "active_days", "listening_days"]),
     ("/api/insights", ["insights"]),
     ("/api/anomalies", ["findings"]),
 ]
@@ -50,11 +52,18 @@ def test_endpoint_returns_expected_schema(client, path, keys):
         assert key in payload, f"{path} response missing key {key!r}"
 
 
-def test_currently_playing_degrades_cleanly(client):
-    """Needs the Spotify client, which CI does not have — it must still answer JSON."""
+def test_currently_playing_reports_a_missing_client_as_a_state(client):
+    """No Spotify client on the host is a 'not connected' state, not a 5xx.
+
+    Returning 500 made every page log a console error on each 5-second poll
+    and threw in fetchJSON, so the Live card never rendered its idle state.
+    """
     resp = client.get("/api/currently-playing")
-    assert resp.status_code in (200, 500)
-    assert "playing" in resp.get_json()
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload["playing"] is False
+    assert payload["connected"] is False
+    assert payload["message"]
 
 
 @pytest.mark.parametrize("path", PAGES)
