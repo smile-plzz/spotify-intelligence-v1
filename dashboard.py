@@ -42,9 +42,26 @@ app.config["JSON_SORT_KEYS"] = False
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
 
 
-def get_db():
-    db = sqlite3.connect(str(DB_PATH))
+def get_db() -> sqlite3.Connection:
+    """Open a new database connection for the current request context.
+
+    Uses ``DB_PATH`` when set (e.g. by tests); otherwise resolves from the
+    current working directory with a fallback to the file next to this module.
+    The SQLite database must be opened with an absolute path in this environment.
+    """
+    path: str | None = None
+    if DB_PATH is not None:
+        path = str(DB_PATH)
+    if path is None:
+        path = os.path.join(os.getcwd(), "spotify_data.db")
+        if not os.path.exists(path):
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "spotify_data.db")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"spotify_data.db not found at {path}")
+    db = sqlite3.connect(path)
     db.row_factory = sqlite3.Row
+    db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA foreign_keys=ON")
     return db
 
 
@@ -57,15 +74,13 @@ def db_cache(key: str) -> str:
     try:
         db = get_db()
         row = db.execute(
-            "SELECT value FROM analytics_cache WHERE key=?",
-            (key,),
+            "SELECT value FROM analytics_cache WHERE key=?", (key,),
         ).fetchone()
-        db.close()
         if row:
             return row["value"]
+        return ""
     except Exception:
-        pass
-    return ""
+        return ""
 
 
 HERMES_PATH = os.getenv(
@@ -457,7 +472,7 @@ def api_time_of_day():
     db = get_db()
 
     hourly = db.execute(
-        """SELECT strftime('%H', timestamp, 'unixepoch') as hour,
+        """SELECT strftime('%H', played_at, 'unixepoch') as hour,
                 COUNT(*) as plays
            FROM listening_events
            GROUP BY hour
@@ -472,7 +487,7 @@ def api_time_of_day():
 
     # Daily
     daily = db.execute(
-        """SELECT strftime('%w', timestamp, 'unixepoch') as dow,
+        """SELECT strftime('%w', played_at, 'unixepoch') as dow,
                 COUNT(*) as plays
            FROM listening_events
            GROUP BY dow
@@ -512,7 +527,7 @@ def api_sessions():
 
     recent_sessions = db.execute(
         """SELECT
-           strftime('%Y-%m-%d %H:%M', timestamp, 'unixepoch') as start_time,
+           strftime('%Y-%m-%d %H:%M', played_at, 'unixepoch') as start_time,
            COUNT(*) as track_count,
            COUNT(DISTINCT track_id) as unique_tracks,
            COUNT(DISTINCT artist_id) as unique_artists
@@ -1222,4 +1237,4 @@ if __name__ == "__main__":
     port = int(os.getenv("FLASK_PORT", "5000"))
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     print(f"[dashboard] Starting on http://{host}:{port}")
-    app.run(host=host, port=port, debug=True)
+    app.run(host=host, port=port, debug=False)
