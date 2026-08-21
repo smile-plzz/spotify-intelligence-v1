@@ -53,6 +53,39 @@ The tunnel URL becomes your live dashboard. No new accounts, no payment.
 | `/api/sessions` | Listening sessions |
 | `/api/library` | Saved tracks, albums, playlists |
 | `/api/currently-playing` | Current Spotify track (if playing) |
+| `/api/listening-patterns` | Hourly/daily pattern summary with peaks |
+| `/api/mood` | Valence, energy, acousticness, danceability averages |
+| `/api/archetype` | Listener archetype and its supporting signals |
+| `/api/evolution` | Taste timeline (cached analytics view) |
+| `/api/playlist` | Playlists from the warehouse |
+| `/api/timezone` | Inferred timezone and peak listening hour |
+| `/api/insights` | Generated listening insights |
+| `/api/anomalies` | Detected listening anomalies |
+| `/api/recent` | Most recent plays, newest first (`?limit=`, 1–100) |
+| `/api/status` | Warehouse counts, last play, analytics cache age, DB size |
+| `/health` | Liveness probe |
+
+## Tests
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest tests -q
+```
+
+The suite runs against a seeded fixture warehouse (`tests/fixture_db.py`), so it
+needs neither `spotify_data.db` nor Spotify credentials. It covers every API
+endpoint's status and response schema, every page template rendering, static
+asset serving, the top-artists/top-tracks play-count aggregation, and a static
+check that `dashboard.js` calls no undefined methods during init. GitHub Actions
+runs it on every push and pull request (`.github/workflows/ci.yml`).
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `FLASK_PORT` / `FLASK_HOST` | `5000` / `0.0.0.0` | Where the dashboard listens |
+| `HERMES_AGENT_PATH` | the Windows hermes path | Where the Spotify client package lives. Without it, `/api/currently-playing` reports `connected: false` and everything else still works from the warehouse. |
 
 ## Credentials
 
