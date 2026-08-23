@@ -1,1 +1,0 @@
-# Vercel Python runtime dependencies (stdlib only — no pip install needed)

@@ -1,99 +1,36 @@
-# ── Scratch-repo .gitignore ──────────────────────────────────────────
-# OS / editor cruft
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Windows registry / system (HUGE, never commit)
-NTUSER.DAT
-ntuser.dat.*
-*.regtrans-ms
-*.TM.blf
-*.TMContainer*
-
 # Python
 __pycache__/
 *.pyc
 *.pyo
-*.egg-info/
-venv/
 .venv/
+venv/
 *.db
 *.db-shm
 *.db-wal
 *.log
 
-# Secrets / credentials — never commit
+# Secrets
 .env
-.env.*
-.claude.json
-.cache/
+.env.local
+*.secret
 
-# Hermes internals
-.hermes/
-.cua-driver/
-.cua-driver-rs/
-.config/
-.local/
-
-# Loose folders — runtime / personal, not agent scratch
-# (AppData also contains a broken self-referential junction at
-#  AppData/Local/Application Data that hangs recursive tree walks —
-#  see change log 2026-08-16)
-AppData/
-# Legacy Windows compat junctions (all point back into the same
-# self-referential AppData tree — see note above)
-Application Data/
-Local Settings/
-My Documents/
-Recent/
-SendTo/
-NetHood/
-PrintHood/
-conversations/
-Desktop/
-Downloads/
-OneDrive/
-Projects/
-Searches/
-Favorites/
-Links/
-IntelGraphicsProfiles/
-Videos/
-Music/
-Contacts/
-Saved\ Games/
-Templates/
-Start\ Menu/
-
-# Docker
-.docker/
-
-# Large / binary / generated
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.zip
-*.tar.gz
-*.rar
-*.7z
-*.mp3
-*.mp4
-*.exe
-*.dll
-*.ico
-*.pdf
-
-# IDE / editor
+# IDE
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
-.vercel
-.env*
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated data
+profiles/
+prompts/
+posts/
+test_*.png
+test_*.jpg
+integration_test_*.jpg
+api_cache/
+analytics_results.json
+analyzer_cache/

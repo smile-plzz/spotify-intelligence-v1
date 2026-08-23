@@ -1,81 +1,96 @@
-# alfred-scratch — version-tracked home for everything Alfred & Master Bruce build together
+# Spotify Intelligence Platform
 
-> After first conversation: 2026-08-16
+A personal Spotify intelligence platform — analytics engine, genre mapping, taste evolution, AI insights, and an interactive dark-aesthetic dashboard. Built on real Spotify listening data from `smile_plzz_`.
 
-This repo is the canonical home for plans, logs, notes, and working scripts that
-Alfred and Master Bruce have discussed, planned, or documented together — things
-that don't belong in the focused project repos (`hermes-setup`, `spotify-taste-art-engine`,
-`driver-psychology-analysis`, etc.) but still deserve version history.
-
-## Why this exists
-
-Master Bruce's home directory had a scattering of working files, logs, and markdown
-documents — token dashboards, bot logs, session transcripts, system audit notes,
-Instagram/Reddit automation scripts — that were version-tracked piecemeal (some in
-their own repos, some in `smile-plzz/agent-scratch`, many not at all). This repo
-consolidates them into one place with a clear structure, so anything we talk about
-or build together has a permanent, searchable, versioned home.
-
-## Structure
+## Architecture
 
 ```
-alfred-scratch/
-├── logs/                  # Running logs: bot activity, session summaries, operations
-│   ├── reddit-bot-log.md
-│   ├── instagram-bot-log.md
-│   ├── completion_notes.txt
-│   └── conversations/
-│       └── alfred-summary.md
-├── dashboard/             # Token analytics & dashboard tooling
-│   ├── token_dashboard.py
-│   ├── test_dashboard.py
-│   ├── edge_proxy.py
-│   ├── alfred_relay.py
-│   ├── public/            # Static dashboard UI files
-│   └── api/               # Dashboard API endpoints
-├── scripts/               # Utility scripts (profile readers, uploads, automation)
-│   ├── read_profiles.py
-│   ├── read_profiles2.py
-│   ├── read_profiles3.py
-│   ├── insta_uploader.py
-│   └── inject_caption.js
-├── docs/                  # Persistent documentation & plans
-│   ├── workspace-dashboard.md   # README_raw.md / INDEX_raw.md → curated workspace index
-│   ├── system-audit-2026-08-16.md
-│   ├── recovery-checklist.md
-│   ├── dashboard-activation.md
-│   ├── power-handler.md
-│   ├── claude-hub-integration.md
-│   └── ... (any new plans or docs Alfred and Master Bruce produce)
-├── projects/              # Meta-descriptions of projects that have their own repos
-│   └── project-index.md   # Curated index of all active projects, their repos, status
-├── .env.example            # Template for any secrets needed by scripts here
-├── .gitignore
-└── README.md
+Spotify API → Data Ingestion → SQLite Warehouse → Analytics Engine → AI Insights → Dashboard
 ```
 
-## What goes here vs. in a focused repo
+## Quick Start
 
-| Goes here | Goes in its own repo |
-|---|---|
-| Running logs & session notes | Production code with its own CI/CD |
-| Dashboard utilities & test scripts | Libraries/packages with dependencies |
-| One-off automation scripts | Projects with their own docs, issues, releases |
-| System audit & repair notes | Anything with external users or APIs |
-| Cross-cutting plans & documentation | Anything Master Bruce wants to share publicly |
+```bash
+# Create .env from example
+cp .env.example .env
+# Fill in SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_USER_ID
 
-## Sync strategy
+# Install deps
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 
-This repo lives on GitHub as `smile-plzz/hermes-alfred-scratch` (private). Local
-working copies live at `C:\Users\ismai\alfred-scratch`. A periodic sync (cron or
-manual `git push`) keeps the remote current. The repo is private — it may contain
-logs, plans, and operational details Master Bruce doesn't want public.
+# Run full ingestion (pulls from Spotify)
+.venv/bin/python ingest.py --full
 
-## Adding new things
+# Generate genre mappings (deterministically seeded from taste profile)
+.venv/bin/python seed_genres.py
 
-When Alfred and Master Bruce produce a new plan, log, or script that doesn't fit
-any existing repo: put it here, commit, push. That's the whole rule. No ceremony.
+# Compute analytics
+.venv/bin/python analytics.py --cache
 
----
+# Start dashboard server
+.venv/bin/python dashboard.py
+# Open http://localhost:5000
+```
 
-*Alfred Pennyworth, 16 August 2026*
+## What It Does
+
+- **Data Layer**: Normalized SQLite warehouse (WAL mode) for tracks, artists, albums, listening events, audio features, playlists, saved tracks/albums, top-track/artist snapshots. Idempotent upserts, deduplication of listening events, incremental updates, rate-limit handling, token refresh, graceful API failure handling.
+- **Analytics Engine** (1,700+ lines): 30 metric groups including total listening, genre diversity (Shannon index), artist loyalty, discovery vs comfort index, Music DNA profile (9 dimensions), taste evolution timeline, session analysis, time-of-day patterns, listener archetype classification, anomaly detection, personalized recommendations.
+- **Genre Intelligence**: 20+ genres mapped across artist-genre relationships, genre families, and hierarchy — seeded from taste profile data.
+- **Taste Evolution**: Month-by-month timeline with genre shifts, listening era identification, significant taste change detection.
+- **AI Insights**: Grounded in analytics facts — listener archetype, anomaly descriptions, recommendation reasoning.
+- **Dashboard**: 7-section dark-aesthetic Flask dashboard with Chart.js visualizations (8 charts): currently playing, top artists/tracks, genre universe, taste evolution, daily music clock, listening sessions, library, AI insights, real-time mode.
+
+## Project Structure
+
+```
+spotify-intelligence/
+├── ingest.py          # Spotify data ingestion (1,043 lines)
+├── analytics.py       # Analytics engine (1,706 lines)
+├── dashboard.py       # Flask dashboard server (605 lines, 10 API endpoints)
+├── seed_genres.py     # Genre mapping seeder (deterministic from profile)
+├── templates/
+│   └── index.html     # Dark-aesthetic dashboard (7 sections, 23 cards)
+├── static/
+│   ├── css/dashboard.css   # Full dark theme (741 lines, :root variables)
+│   └── js/dashboard.js     # Client-side Chart.js app (1,025 lines)
+├── spotify_data.db    # SQLite warehouse (WAL mode, populated)
+├── analytics_results.json  # Cached analytics output
+├── .env               # Credentials (gitignored)
+├── .env.example       # Template with placeholders
+├── .gitignore         # Excludes .env, *.db, .venv/, api_cache/
+└── requirements.txt   # Python dependencies
+```
+
+## API Scopes Used
+
+- `user-read-recently-played`
+- `user-top-read` (short/medium/long term)
+- `user-library-read` (saved tracks/albums)
+- `user-read-currently-playing`
+- `user-read-playback-state`
+
+## Dashboard Sections
+
+| Section | Contents |
+|---------|----------|
+| **Overview** | Currently playing, stats grid (plays/artists/tracks/albums), top artists chart, top tracks chart, genre cloud, listener archetype, Music DNA |
+| **Taste** | Genre universe (20 genres, families), diversity meter (Shannon index), artist relationship map, exploration ↔ comfort index |
+| **Evolution** | Listening timeline (plays/artists over months), monthly genre evolution chart, listening eras, taste shifts |
+| **Listening** | Daily music clock (24-hour radial), weekday vs weekend, listening sessions |
+| **Library** | Saved tracks (50), saved albums (50), playlists (61) |
+| **Intelligence** | AI-generated insights, anomaly findings, personalized recommendations |
+| **Live** | Real-time currently playing with audio features, recent activity |
+
+## Deployment
+
+Flask development server (dashboard.py). For production, use a WSGI server (gunicorn) behind a reverse proxy. The app binds to `0.0.0.0:5000` by default (configurable via `FLASK_PORT` and `FLASK_HOST` env vars).
+
+## Credentials
+
+Spotify credentials are sourced from `C:\Users\ismai\.env` (home directory) and accessed via the Hermes Spotify plugin. The project `.env` mirrors these and is gitignored. Never commit real credentials — use `.env.example` as a template.
+
+## License
+
+Personal use.
