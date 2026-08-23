@@ -22,3 +22,7 @@ Thumbs.db
 *.swo
 # Test artifacts
 .pytest_cache/
+
+# Runtime logs (not tracked)
+dashboard.log
+ngrok-live.log
