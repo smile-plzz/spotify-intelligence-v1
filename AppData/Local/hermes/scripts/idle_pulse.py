@@ -44,6 +44,24 @@ HOME = os.path.expanduser("~")
 HERMES = os.path.join(HOME, "AppData", "Local", "hermes")
 ACTIVITY_LOG = os.path.join(HERMES, "logs", "idle_activity.jsonl")
 
+# ---------------------------------------------------------------------------
+# Persistence + concurrency + budget (hardening layer)
+# ---------------------------------------------------------------------------
+
+LOCK_FILE = os.path.join(HERMES, "logs", "worker_lock.json")
+ROUTINE_STATE_FILE = os.path.join(HERMES, "logs", "routine_state.json")
+TASK_LIFECYCLE_FILE = os.path.join(HERMES, "logs", "task_lifecycle.json")
+
+# Work budget — idle worker is for background maintenance, not unbounded runs
+MAX_CHORES_PER_INVOCATION = 3
+MAX_EXECUTION_TIME_SECONDS = 300  # 5 minutes total wall-clock per invocation
+MAX_RETRIES_PER_CHORE = 2  # attempts total (1st try + 1 retry)
+LOCK_STALE_SECONDS = 300  # 5 minutes — after this, a dead worker's lock is reclaimable
+
+# Routine verification cadence — how often each routine is eligible
+ROUTINE_CADENCE_HOURS = 6
+
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -202,6 +220,286 @@ def memory_freshness():
 
 def ensure_dirs():
     os.makedirs(os.path.join(HERMES, "logs"), exist_ok=True)
+
+
+# ---------------------------------------------------------------------------
+# Lock / concurrency
+# ---------------------------------------------------------------------------
+
+def acquire_lock() -> dict:
+    """Try to acquire a worker lock. Returns lock dict on success, None if
+    another worker holds it (and is not stale). A stale lock (holder dead
+    for LOCK_STALE_SECONDS) is reclaimed.
+    """
+    now = datetime.now(timezone.utc)
+    now_ts = now.timestamp()
+    ensure_dirs()
+    if os.path.exists(LOCK_FILE):
+        try:
+            with open(LOCK_FILE, "r", encoding="utf-8") as f:
+                lock = json.load(f)
+            held_since = lock.get("acquired_at_ts")
+            if held_since is not None and (now_ts - held_since) > LOCK_STALE_SECONDS:
+                # Stale — reclaim
+                lock = _write_lock(now, lock.get("pid", "?"))
+                lock["reclaimed"] = True
+                return lock
+            # Active — decline
+            return None
+        except (json.JSONDecodeError, OSError):
+            # Corrupted — overwrite
+            pass
+    lock = _write_lock(now)
+    return lock
+
+
+def release_lock() -> bool:
+    """Release the worker lock if we hold it."""
+    my_pid = os.getpid()
+    if not os.path.exists(LOCK_FILE):
+        return True
+    try:
+        with open(LOCK_FILE, "r", encoding="utf-8") as f:
+            lock = json.load(f)
+        if lock.get("pid") == my_pid:
+            os.remove(LOCK_FILE)
+            return True
+    except (json.JSONDecodeError, OSError):
+        pass
+    return False
+
+
+def _write_lock(now: datetime, existing_pid: str = None) -> dict:
+    pid = os.getpid()
+    acquired_at = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+    acquired_at_ts = now.timestamp()
+    lock = {
+        "pid": pid,
+        "acquired_at": acquired_at,
+        "acquired_at_ts": acquired_at_ts,
+        "hostname": os.uname().nodename if hasattr(os, "uname") else "unknown",
+    }
+    with open(LOCK_FILE, "w", encoding="utf-8") as f:
+        json.dump(lock, f, indent=2)
+    return lock
+
+
+# ---------------------------------------------------------------------------
+# Routine state persistence (requirement 5)
+# ---------------------------------------------------------------------------
+
+def load_routine_state() -> dict:
+    """Return dict: routine_key -> {last_exec_ts, last_result, failure_count,
+    next_eligible_ts}. Loads from persistent file."""
+    if not os.path.exists(ROUTINE_STATE_FILE):
+        return {}
+    try:
+        with open(ROUTINE_STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_routine_state(state: dict):
+    """Persist routine state to disk."""
+    ensure_dirs()
+    with open(ROUTINE_STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+
+def routine_eligible(key: str, routine_state: dict) -> bool:
+    """Check whether a routine is eligible to run now.
+    A routine is eligible if it has never run, or its next_eligible_ts has
+    passed, or it has failed too many times (backoff reset + cooldown).
+    """
+    now_ts = datetime.now(timezone.utc).timestamp()
+    entry = routine_state.get(key)
+    if entry is None:
+        return True  # never run — eligible
+    next_eligible = entry.get("next_eligible_ts")
+    if next_eligible is not None and now_ts < next_eligible:
+        return False  # still in cooldown
+    # If failure count exceeds threshold, extend cooldown
+    if entry.get("failure_count", 0) >= MAX_RETRIES_PER_CHORE:
+        # Push next eligible by another cadence window
+        entry["next_eligible_ts"] = now_ts + (ROUTINE_CADENCE_HOURS * 3600)
+        save_routine_state(routine_state)
+        return False
+    return True
+
+
+def record_routine_result(key: str, result: str, routine_state: dict):
+    """Update routine state after execution."""
+    now_ts = datetime.now(timezone.utc).timestamp()
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    if key not in routine_state:
+        routine_state[key] = {
+            "last_exec_ts": now_ts,
+            "last_exec_at": now,
+            "last_result": result,
+            "failure_count": 0,
+            "next_eligible_ts": None,
+        }
+    entry = routine_state[key]
+    entry["last_exec_ts"] = now_ts
+    entry["last_exec_at"] = now
+    entry["last_result"] = result
+    if result == "completed":
+        # Reset failure count on success
+        entry["failure_count"] = 0
+        entry["next_eligible_ts"] = now_ts + (ROUTINE_CADENCE_HOURS * 3600)
+    elif result in ("failed", "blocked"):
+        entry["failure_count"] = entry.get("failure_count", 0) + 1
+        # On first failure, next eligible is now (retry next cycle)
+        # On repeated failures, backoff kicks in via routine_eligible()
+        if entry["failure_count"] < MAX_RETRIES_PER_CHORE:
+            entry["next_eligible_ts"] = None  # eligible immediately next time
+    save_routine_state(routine_state)
+
+
+# ---------------------------------------------------------------------------
+# Task lifecycle (requirement 4)
+# ---------------------------------------------------------------------------
+
+def load_task_lifecycle() -> dict:
+    """Return dict: task_id -> lifecycle record."""
+    if not os.path.exists(TASK_LIFECYCLE_FILE):
+        return {}
+    try:
+        with open(TASK_LIFECYCLE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_task_lifecycle(state: dict):
+    ensure_dirs()
+    with open(TASK_LIFECYCLE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+
+def lifecycle_key(chore_hash: str) -> str:
+    """Lifecycle entries are keyed by chore_hash."""
+    return chore_hash
+
+
+def claim_task(chore_hash: str, task_desc: str, lifecycle: dict) -> dict:
+    """Transition a task from ACTIVE to CLAIMED. Returns the lifecycle record."""
+    key = lifecycle_key(chore_hash)
+    if key not in lifecycle:
+        lifecycle[key] = {
+            "task_id": key,
+            "description": task_desc,
+            "state": "CLAIMED",
+            "claimed_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "claimed_by_pid": os.getpid(),
+            "attempts": 0,
+            "last_failure_reason": None,
+            "backoff_until": None,
+        }
+    return lifecycle[key]
+
+
+def start_task(chore_hash: str, lifecycle: dict) -> dict:
+    """Transition CLAIMED -> IN_PROGRESS. Returns the lifecycle record."""
+    key = lifecycle_key(chore_hash)
+    if key not in lifecycle:
+        lifecycle[key] = {
+            "task_id": key,
+            "description": "",
+            "state": "IN_PROGRESS",
+            "claimed_at": None,
+            "claimed_by_pid": None,
+            "attempts": 0,
+            "last_failure_reason": None,
+            "backoff_until": None,
+        }
+    rec = lifecycle[key]
+    if rec.get("state") == "FAILED" and rec.get("backoff_until"):
+        # Check backoff
+        backoff_ts = rec["backoff_until"]
+        if backoff_ts and datetime.now(timezone.utc).timestamp() < backoff_ts:
+            # Still in backoff — don't allow re-start
+            return rec
+    rec["state"] = "IN_PROGRESS"
+    rec["started_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    rec["started_by_pid"] = os.getpid()
+    rec["attempts"] = rec.get("attempts", 0) + 1
+    save_task_lifecycle(lifecycle)
+    return rec
+
+
+def complete_task(chore_hash: str, lifecycle: dict) -> dict:
+    """Transition IN_PROGRESS -> COMPLETED."""
+    key = lifecycle_key(chore_hash)
+    if key not in lifecycle:
+        lifecycle[key] = {"task_id": key, "description": "", "state": "COMPLETED"}
+    rec = lifecycle[key]
+    rec["state"] = "COMPLETED"
+    rec["completed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    rec["completed_by_pid"] = os.getpid()
+    save_task_lifecycle(lifecycle)
+    return rec
+
+
+def fail_task(
+    chore_hash: str,
+    lifecycle: dict,
+    reason: str,
+    current_attempt: int,
+) -> dict:
+    """Transition IN_PROGRESS/CLAIMED -> FAILED with backoff."""
+    key = lifecycle_key(chore_hash)
+    if key not in lifecycle:
+        lifecycle[key] = {"task_id": key, "description": "", "state": "FAILED"}
+    rec = lifecycle[key]
+    rec["state"] = "FAILED"
+    rec["failed_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    rec["failed_by_pid"] = os.getpid()
+    rec["last_failure_reason"] = reason
+    rec["attempts"] = current_attempt
+    # Calculate backoff
+    backoff_hours = min(2 ** (current_attempt - 1), 24)  # 1h, 2h, 4h, ... capped at 24h
+    rec["backoff_until"] = (
+        datetime.now(timezone.utc).timestamp() + (backoff_hours * 3600)
+    )
+    save_task_lifecycle(lifecycle)
+    return rec
+
+
+def recover_unverified(lifecycle: dict, activity_hashes: set) -> list:
+    """Scan activity log for IN_PROGRESS entries that never reached
+    verification, and mark their lifecycle records as FAILED/UNVERIFIED.
+    Returns list of chore_hashes that need attention.
+    """
+    # Load activity log and look for entries that are in_progress but
+    # whose result is not completed/failed (i.e., execution started but
+    # the entry is incomplete)
+    unverified = []
+    if not os.path.exists(ACTIVITY_LOG):
+        return unverified
+    try:
+        with open(ACTIVITY_LOG, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                    # An entry is "unverified" if execution_success=True but
+                    # the entry was written prematurely (incomplete)
+                    # In our current model, the entry is always written
+                    # atomically at end of run, so this is a safeguard.
+                    if entry.get("execution_success") is True and \
+                       entry.get("verification_result") in (None, "pending"):
+                        h = entry.get("chore_hash")
+                        if h and h not in activity_hashes:
+                            unverified.append(h)
+                except json.JSONDecodeError:
+                    continue
+    except Exception:
+        pass
+    return unverified
 
 
 def load_completed_hashes() -> set:
@@ -742,13 +1040,21 @@ def select_from_audit(
     return None
 
 
-def select_routine_verification(completed_hashes: set, repo_dir: str) -> Optional[dict]:
+def select_routine_verification(
+    completed_hashes: set,
+    repo_dir: str,
+    routine_state: dict,
+) -> Optional[dict]:
     """Priority 6: routine verification chores (always safe, idempotent).
 
     Uses chore_hash_in_log() (not completed_hashes directly) so that chores
     which were attempted but failed are also skipped — they won't be retried
     every cycle. Failed chores get retried on the next cron cycle or when
     explicitly added to tasks.md.
+
+    Also checks routine_state for cadence-based eligibility: each routine
+    has a minimum interval before it is eligible again, preventing repetitive
+    "busy work" when nothing has changed.
     """
     checks = [
         ("services_up", "Verify dashboard services (ports 8765, 8788) are listening"),
@@ -759,13 +1065,18 @@ def select_routine_verification(completed_hashes: set, repo_dir: str) -> Optiona
     ]
     for key, desc in checks:
         h = chore_hash("", "", desc)
-        if not chore_hash_in_log(h):
-            return {
-                "source": "routine",
-                "key": key,
-                "description": desc,
-                "type": "verification",
-            }
+        # Skip if already completed AND already recorded in routine state
+        if chore_hash_in_log(h):
+            continue
+        # Skip if not eligible per routine cadence
+        if not routine_eligible(key, routine_state):
+            continue
+        return {
+            "source": "routine",
+            "key": key,
+            "description": desc,
+            "type": "verification",
+        }
     return None
 
 
@@ -774,7 +1085,9 @@ def select_chore(
     repos_with_changes: list,
     completed_hashes: set,
     repo_dir: str,
-):
+    routine_state: dict,
+    lifecycle: dict,
+) -> Optional[dict]:
     """Select one chore using priority order. Returns dict or None."""
     # 1. Explicit unfinished task in tasks.md
     if tasks_sections:
@@ -783,8 +1096,14 @@ def select_chore(
             return t
 
     # 2. Previously started but unverified work — check activity log for
-    #    chores with result != "completed" (in_progress, failed, blocked).
-    #    For now: skip — requires more state than we have.
+    #    chores with result != "completed" (in_progress, unverified).
+    #    Also check task_lifecycle for CLAIMED/IN_PROGRESS tasks.
+    recovery = select_unfinished_or_recoverable_work(
+        completed_hashes, tasks_sections, repo_dir
+    )
+    if recovery:
+        return recovery
+    # 3. In_progress tasks from activity log (execution succeeded, verification skipped...[truncated]
 
     # 3-4. Audit findings
     audit = select_from_audit(repos_with_changes, completed_hashes, repo_dir)
@@ -792,7 +1111,7 @@ def select_chore(
         return audit
 
     # 6. Routine verification
-    routine = select_routine_verification(completed_hashes, repo_dir)
+    routine = select_routine_verification(completed_hashes, repo_dir, routine_state)
     if routine:
         return routine
 
@@ -1128,7 +1447,18 @@ def format_morning_report(activity_since: str) -> str:
     completed = [e for e in entries if e.get("result") == "completed"]
     failed = [e for e in entries if e.get("result") == "failed"]
     blocked = [e for e in entries if e.get("blocked_reason")]
+
+    # New: distinguish in-progress, unverified, and no-action states
+    in_progress = [e for e in entries if e.get("result") == "in_progress"]
+    unverified = [e for e in entries
+                  if e.get("result") == "unverified"
+                  or (e.get("execution_success") is True
+                      and e.get("verification_result") in (None, "pending"))]
     no_action = [e for e in entries if e.get("result") == "NO_ACTION_NEEDED"]
+    pending_from_previous = [e for e in entries
+                             if e.get("lifecycle", {}).get("status")
+                                in ("CLAIMED", "IN_PROGRESS")
+                             and e.get("lifecycle", {}).get("recovery") is False]
 
     for e in completed:
         desc = e.get("chore", {}).get("description", "chore")
@@ -1157,6 +1487,22 @@ def format_morning_report(activity_since: str) -> str:
     for e in blocked:
         lines.append(f"• blocked: {e.get('chore', {}).get('description', 'chore')} — {e.get('blocked_reason', '')[:80]}")
 
+    # New categories
+    for e in in_progress:
+        desc = e.get('chore', {}).get('description', 'chore')
+        lines.append(f"• in_progress: {desc}")
+        lines.append(f"  started: {e.get('timestamp', '')} — work in progress, not yet verified")
+
+    for e in unverified:
+        desc = e.get('chore', {}).get('description', 'chore')
+        lines.append(f"• unverified: {desc}")
+        lines.append(f"  execution succeeded but verification was interrupted — needs re-verification")
+
+    for e in pending_from_previous:
+        desc = e.get('chore', {}).get('description', 'chore')
+        lines.append(f"• pending from previous invocation: {desc}")
+        lines.append(f"  lifecycle: {e.get('lifecycle', {}).get('status', '')} — may need manual review")
+
     if no_action:
         lines.append(f"• {len(no_action)} idle pulse(s) with no work found")
 
@@ -1167,177 +1513,348 @@ def format_morning_report(activity_since: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Crash / interruption recovery (requirement 3)
+# ---------------------------------------------------------------------------
+
+def select_in_progress_from_log(completed_hashes: set, repo_dir: str) -> Optional[dict]:
+    """Find a chore from the activity log whose execution succeeded but
+    verification was interrupted (result == "in_progress" or "unverified").
+
+    The next invocation must recognize this and either re-verify or safely
+    mark it for review — never silently assume success.
+    """
+    if not os.path.exists(ACTIVITY_LOG):
+        return None
+    try:
+        with open(ACTIVITY_LOG, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except OSError:
+        return None
+
+    # Scan from oldest to newest; pick the first unverified entry
+    # whose hash is NOT in completed_hashes (i.e. never successfully
+    # completed — so we shouldn't skip it).
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            e = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        result = e.get("result", "")
+        if result not in ("in_progress", "unverified"):
+            continue
+        h = e.get("chore_hash", "")
+        if h and h in completed_hashes:
+            continue  # already successfully completed, skip
+        chore = e.get("chore", {})
+        exec_success = e.get("execution_success", False)
+        exec_detail = e.get("execution_detail", "")
+        verify_detail = e.get("verification_detail", "")
+
+        # Build a recovery chore that re-runs verification (or re-executes
+        # if execution also didn't complete).
+        return {
+            "source": "recovery",
+            "recovery_of": e.get("timestamp", ""),
+            "chore_hash": h or "",
+            "description": chore.get("description", "resumed interrupted chore"),
+            "type": chore.get("type", "recovery"),
+            "key": chore.get("key", ""),
+            "repo_dir": chore.get("repo_dir", repo_dir),
+            "rel_path": chore.get("rel_path", ""),
+            "recovery": {
+                "previous_exec_success": exec_success,
+                "previous_exec_detail": exec_detail,
+                "previous_verify_detail": verify_detail,
+                "interrupted_at": e.get("timestamp", ""),
+            },
+        }
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Main workflow
 # ---------------------------------------------------------------------------
 
-def run_work_mode(trigger: str = "manual", dry_run: bool = False):
-    """Full idle worker workflow: select, execute, verify, record, update, report."""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    completed_hashes = load_completed_hashes()
-
-    # Load context
+def _no_action_entry(now: str, trigger: str, reason: str = "") -> dict:
+    """Build a NO_ACTION_NEEDED entry."""
     tasks_path = tasks_file_path()
-    tasks_sections = None
-    if tasks_path and os.path.isfile(tasks_path):
-        try:
-            tasks_sections, _ = parse_tasks_md(tasks_path)
-        except Exception as e:
-            tasks_sections = None
-
-    learning_files = recent_learning_files(limit=1)
-    learning_context = ""
-    if learning_files:
-        try:
-            with open(learning_files[0], "r", encoding="utf-8") as f:
-                content = f.read()
-            # Extract first 500 chars as context hint
-            learning_context = content[:500].replace("\n", " ")
-        except Exception:
-            pass
-
-    # Audit
-    repos_with_changes = git_repos_with_changes(HOME)
+    repos_with_changes = git_repos_with_changes(HOME) if tasks_path else []
+    completed_hashes = load_completed_hashes()
     services = ports_alive([8765, 8788])
-    services_up = all(s == "UP" for s in services.values())
+    scan = [
+        f"tasks.md: {'present' if tasks_path else 'absent'}",
+        f"services: {services}",
+        f"repos_with_changes: {len(repos_with_changes)}",
+        f"completed_chore_hashes: {len(completed_hashes)}",
+        f"lock: held by pid {os.getpid()}",
+    ]
+    if reason:
+        scan.append(f"no_work_reason: {reason}")
+    return {
+        "timestamp": now,
+        "trigger": trigger,
+        "result": "NO_ACTION_NEEDED",
+        "scan_summary": scan,
+        "follow_up": [],
+    }
 
-    # Select
-    chore = select_chore(tasks_sections, repos_with_changes, completed_hashes, HOME)
 
-    if chore is None:
-        entry = {
-            "timestamp": now,
-            "trigger": trigger,
-            "result": "NO_ACTION_NEEDED",
-            "scan_summary": [
-                f"tasks.md: {'present' if tasks_path else 'absent'}",
-                f"services: {services}",
-                f"repos_with_changes: {len(repos_with_changes)}",
-                f"completed_chore_hashes: {len(completed_hashes)}",
-                f"learning_context: {'available' if learning_context else 'none'}",
-            ],
-            "follow_up": [],
-        }
+def _format_no_action(entry: dict) -> str:
+    """Format a NO_ACTION_NEEDED entry for output."""
+    lines = [f"Alfred Idle Worker — {entry.get('timestamp', 'unknown')}"]
+    lines.append(f"Triggered by: {entry.get('trigger', 'manual')}")
+    lines.append("")
+    lines.append("No bounded work found. System is clean.")
+    if entry.get("scan_summary"):
+        lines.append("")
+        lines.append("Scan summary:")
+        for s in entry["scan_summary"]:
+            lines.append(f"  • {s}")
+    return "\n".join(lines)
+
+
+def run_work_mode(trigger: str = "manual", dry_run: bool = False):
+    """Full idle worker workflow: lock -> select -> execute -> verify -> record -> update -> report."""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    # --- Lock ---
+    lock = acquire_lock()
+    if lock is None:
+        entry = _no_action_entry(now, trigger, "another worker holds the lock")
         record_activity(entry)
         return entry
 
-    # Execute
-    exec_success, exec_detail = execute_chore(chore, dry_run=dry_run)
-    chore_hash_value = chore_hash(
-        chore.get("repo_dir", ""),
-        chore.get("rel_path", ""),
-        chore.get("description", ""),
-    )
+    try:
+        # --- Budget ---
+        budget_start = time.time()
+        chores_done = 0
+        chores_this_invocation: list = []
 
-    # Verify
-    if exec_success:
-        verify_success, verify_detail = verify_chore(chore, exec_success, exec_detail)
-    else:
-        verify_success = False
-        verify_detail = f"skipped — execution failed: {exec_detail[:80]}"
+        # --- Context loading ---
+        tasks_path = tasks_file_path()
+        tasks_sections = None
+        if tasks_path and os.path.isfile(tasks_path):
+            try:
+                tasks_sections, _ = parse_tasks_md(tasks_path)
+            except Exception:
+                tasks_sections = None
 
-    result = "completed" if (exec_success and verify_success) else "failed"
-    if exec_success and not verify_success:
-        result = "failed"
+        learning_files = recent_learning_files(limit=1)
+        learning_context = ""
+        if learning_files:
+            try:
+                with open(learning_files[0], "r", encoding="utf-8") as f:
+                    content = f.read()
+                learning_context = content[:500].replace("\n", " ")
+            except Exception:
+                pass
 
-    # Determine if we should commit (only for actual file changes)
-    commit_hash = None
-    push_status = None
-    follow_up = []
+        completed_hashes = load_completed_hashes()
+        routine_state = load_routine_state()
+        lifecycle = load_task_lifecycle()
 
-    if result == "completed" and chore.get("repo_dir"):
-        repo_dir = chore["repo_dir"]
-        # Check if there are staged/unstaged changes worth committing
-        code, status_out, _ = run(
-            f'git -C "{repo_dir}" status --short', timeout=10
-        )
-        if code == 0 and status_out.strip():
-            # Check if .gitignore or other tracked files changed
-            if dry_run:
-                follow_up.append(f"[dry_run] would commit changes in {repo_dir}")
-            else:
-                code2, branch_out, _ = run(
-                    f'git -C "{repo_dir}" rev-parse --abbrev-ref HEAD', timeout=10
-                )
-                branch = branch_out.strip() if code2 == 0 else "master"
-                commit_msg = chore.get("description", "idle chore")[:50]
-                # Sanitize commit message
-                commit_msg = re.sub(r'[^\w\s\-\.\,\(\)]', '', commit_msg)
-                if not commit_msg.strip():
-                    commit_msg = "idle chore"
+        # Audit
+        repos_with_changes = git_repos_with_changes(HOME)
+        services = ports_alive([8765, 8788])
+        services_up = all(s == "UP" for s in services.values())
 
-                code3, _, commit_err = run(
-                    f'git -C "{repo_dir}" add -A && git -C "{repo_dir}" commit -m "{commit_msg}"',
-                    timeout=15,
-                )
-                if code3 == 0:
-                    code4, head_out, _ = run(
-                        f'git -C "{repo_dir}" rev-parse HEAD', timeout=10
-                    )
-                    commit_hash = head_out.strip()[:12] if code4 == 0 else None
-                    follow_up.append(f"committed in {repo_dir}: {commit_hash}")
+        # --- Main work loop (budget-bounded) ---
+        while chores_done < MAX_CHORES_PER_INVOCATION:
+            elapsed_s = time.time() - budget_start
+            if elapsed_s >= MAX_INVOCATION_SECONDS:
+                break
+
+            # Select one chore
+            chore = select_chore(
+                tasks_sections, repos_with_changes, completed_hashes, HOME,
+                routine_state, lifecycle,
+            )
+            if chore is None:
+                break
+
+            task_id = chore.get("task_id")
+            was_recovery = chore.get("source") == "recovery"
+            recovery_info = chore.get("recovery")
+
+            # --- CLAIM task in lifecycle ---
+            if task_id and task_id not in lifecycle:
+                lifecycle[task_id] = {
+                    "status": "CLAIMED",
+                    "claimed_at": now,
+                    "claimed_by_pid": lock["pid"],
+                    "description": chore.get("description", ""),
+                    "source": chore.get("source", ""),
+                }
+                save_task_lifecycle(lifecycle)
+
+            # --- Execute ---
+            if recovery_info and recovery_info.get("action") == "re-verify":
+                # Crash recovery: execution succeeded before, just need to verify
+                exec_success = recovery_info.get("previous_exec_success", False)
+                exec_detail = recovery_info.get("previous_exec_detail", "resuming after interruption")
+                verify_success, verify_detail = verify_chore(chore, exec_success, exec_detail)
+            elif recovery_info and recovery_info.get("action") == "re-execute":
+                # Crash recovery: re-run execution then verify
+                exec_success, exec_detail = execute_chore(chore, dry_run=dry_run)
+                if exec_success:
+                    verify_success, verify_detail = verify_chore(chore, exec_success, exec_detail)
                 else:
-                    follow_up.append(f"commit failed in {repo_dir}: {commit_err.strip()[:60]}")
+                    verify_success = False
+                    verify_detail = f"re-execute failed: {exec_detail[:80]}"
+            else:
+                exec_success, exec_detail = execute_chore(chore, dry_run=dry_run)
+                if exec_success:
+                    verify_success, verify_detail = verify_chore(chore, exec_success, exec_detail)
+                else:
+                    verify_success = False
+                    verify_detail = f"execution failed: {exec_detail[:80]}"
 
-    # Push status for repos we touched
-    if result == "completed" and commit_hash and repo_dir:
-        ps = chore_verify_push_status(repo_dir)
-        push_status = ps
-        if ps["status"] == "fetch_failed":
-            follow_up.append(
-                f"push status for {repo_dir} uncertain — "
-                f"cannot confirm from this host (network/credential issue)"
+            # --- Compute result ---
+            if exec_success and verify_success:
+                result = "completed"
+            else:
+                result = "failed"
+
+            # --- Update lifecycle ---
+            if task_id and task_id in lifecycle:
+                lifecycle[task_id]["status"] = result.upper()
+                lifecycle[task_id]["completed_at"] = now
+                lifecycle[task_id]["result"] = result
+                lifecycle[task_id]["verification"] = verify_detail[:200]
+                save_task_lifecycle(lifecycle)
+
+            # --- Commit if needed ---
+            commit_hash = None
+            push_status = None
+            follow_up = []
+            if result == "completed" and chore.get("repo_dir"):
+                repo_dir = chore["repo_dir"]
+                code, status_out, _ = run(
+                    f'git -C "{repo_dir}" status --short', timeout=10
+                )
+                if code == 0 and status_out.strip():
+                    if dry_run:
+                        follow_up.append(f"[dry_run] would commit in {repo_dir}")
+                    else:
+                        code2, branch_out, _ = run(
+                            f'git -C "{repo_dir}" rev-parse --abbrev-ref HEAD', timeout=10
+                        )
+                        branch = branch_out.strip() if code2 == 0 else "master"
+                        commit_msg = chore.get("description", "idle chore")[:50]
+                        commit_msg = re.sub(r'[^\w\s\-\.\,\(\)]', '', commit_msg)
+                        if not commit_msg.strip():
+                            commit_msg = "idle chore"
+                        code3, _, commit_err = run(
+                            f'git -C "{repo_dir}" add -A && git -C "{repo_dir}" commit -m "{commit_msg}"',
+                            timeout=15,
+                        )
+                        if code3 == 0:
+                            code4, head_out, _ = run(
+                                f'git -C "{repo_dir}" rev-parse HEAD', timeout=10
+                            )
+                            commit_hash = head_out.strip()[:12] if code4 == 0 else None
+                            follow_up.append(f"committed in {repo_dir}: {commit_hash}")
+                        else:
+                            follow_up.append(f"commit failed in {repo_dir}: {commit_err.strip()[:60]}")
+
+            # --- Push status ---
+            if result == "completed" and commit_hash and repo_dir:
+                ps = chore_verify_push_status(repo_dir)
+                push_status = ps
+                if ps["status"] == "fetch_failed":
+                    follow_up.append(
+                        f"push status for {repo_dir} uncertain — "
+                        f"cannot confirm from this host"
+                    )
+                elif ps["in_sync"] is False:
+                    follow_up.append(
+                        f"push for {repo_dir} not yet confirmed — "
+                        f"local {ps['local_commit']} != remote {ps['remote_commit']}"
+                    )
+                elif ps["in_sync"] is True:
+                    follow_up.append(f"push confirmed: {repo_dir} in sync")
+
+            # --- Update tasks.md ---
+            tasks_update = ""
+            if tasks_path and chore.get("source") == "tasks.md":
+                try:
+                    tasks_update = update_tasks_md(tasks_path, chore, result == "completed")
+                except Exception as e:
+                    tasks_update = f"tasks.md update failed: {e}"
+            elif tasks_path:
+                try:
+                    tasks_update = update_tasks_md(tasks_path, chore, result == "completed")
+                except Exception as e:
+                    tasks_update = f"tasks.md update failed: {e}"
+
+            # --- Record activity ---
+            chore_hash_value = chore_hash(
+                chore.get("repo_dir", ""), chore.get("rel_path", ""),
+                chore.get("description", ""),
             )
-        elif ps["in_sync"] is False:
-            follow_up.append(
-                f"push for {repo_dir} not yet confirmed — "
-                f"local {ps['local_commit']} != remote {ps['remote_commit']}"
+            entry = {
+                "timestamp": now,
+                "trigger": trigger,
+                "chore": {
+                    "description": chore.get("description", ""),
+                    "why": chore.get("reason", chore.get("why", "")) or "",
+                    "type": chore.get("type", ""),
+                    "source": chore.get("source", ""),
+                    "repo_dir": chore.get("repo_dir", ""),
+                    "rel_path": chore.get("rel_path", ""),
+                },
+                "chore_hash": chore_hash_value,
+                "execution_success": exec_success,
+                "execution_detail": exec_detail,
+                "verification_success": verify_success,
+                "verification_result": "passed" if verify_success else "failed",
+                "verification_detail": verify_detail,
+                "result": result,
+                "commit_hash": commit_hash,
+                "push_status": push_status,
+                "tasks_update": tasks_update,
+                "dry_run": dry_run,
+                "follow_up": follow_up,
+                "lifecycle": {
+                    "status": result,
+                    "task_id": task_id,
+                    "recovery": bool(was_recovery),
+                },
+            }
+            record_activity(entry)
+            chores_this_invocation.append(entry)
+            chores_done += 1
+
+            # Update routine state
+            if chore.get("source") == "routine" and chore.get("key"):
+                record_routine_result(chore["key"], result, routine_state)
+
+            if result != "completed":
+                break
+
+        # --- Build final report ---
+        if chores_done == 0:
+            entry = _no_action_entry(
+                now, trigger,
+                reason=f"budget_exceeded" if (time.time() - budget_start) >= MAX_INVOCATION_SECONDS else "no_work_available",
             )
-        elif ps["in_sync"] is True:
-            follow_up.append(f"push confirmed: {repo_dir} in sync")
+            record_activity(entry)
+            report = _format_no_action(entry)
+        else:
+            entry = chores_this_invocation[-1]
+            report = format_report(entry)
 
-    # Update tasks.md
-    tasks_update = ""
-    if tasks_path and chore.get("source") == "tasks.md":
-        try:
-            tasks_update = update_tasks_md(tasks_path, chore, result == "completed")
-        except Exception as e:
-            tasks_update = f"tasks.md update failed: {e}"
-    elif tasks_path:
-        # Non-tasks.md source: add a done entry anyway
-        try:
-            tasks_update = update_tasks_md(tasks_path, chore, result == "completed")
-        except Exception as e:
-            tasks_update = f"tasks.md update failed: {e}"
+        elapsed_s = time.time() - budget_start
+        mins = int(elapsed_s // 60)
+        secs = int(elapsed_s % 60)
+        print(f"Idle Pulse{' [DRY RUN]' if dry_run else ''}: {chores_done} chore(s) in {mins}m{secs}s — {report[:120]}")
+        return entry
 
-    # Record
-    entry = {
-        "timestamp": now,
-        "trigger": trigger,
-        "chore": {
-            "description": chore.get("description", ""),
-            "why": chore.get("reason", chore.get("why", "")) or "",
-            "type": chore.get("type", ""),
-            "source": chore.get("source", ""),
-            "repo_dir": chore.get("repo_dir", ""),
-            "rel_path": chore.get("rel_path", ""),
-        },
-        "chore_hash": chore_hash_value,
-        "execution_success": exec_success,
-        "execution_detail": exec_detail,
-        "verification_success": verify_success,
-        "verification_result": "passed" if verify_success else "failed",
-        "verification_detail": verify_detail,
-        "result": result,
-        "commit_hash": commit_hash,
-        "push_status": push_status,
-        "tasks_update": tasks_update,
-        "dry_run": dry_run,
-        "follow_up": follow_up,
-    }
-    record_activity(entry)
-
-    return entry
-
+    finally:
+        release_lock()
 
 def main_audit_only():
     """Original audit-only behavior — what the existing cron job runs."""
